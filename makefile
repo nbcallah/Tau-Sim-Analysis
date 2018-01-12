@@ -13,3 +13,6 @@ chisq_spectrum_fit.o: chisq_spectrum_fit.cpp
 
 xorshift.o: xorshift.c xorshift.h
 	$(CC) $(CFLAGS) -c -o xorshift.o xorshift.c
+
+clean:
+	rm -r xorshift.o chisq_spectrum_fit.o chisq_spectrum_fit
