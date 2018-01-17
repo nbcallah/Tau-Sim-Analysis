@@ -2,3 +2,4 @@ chisq_spectrum_fit
 datafiles/*
 *.o
 results/*
+professor/*

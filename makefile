@@ -1,9 +1,13 @@
 CC=gcc
 CXX=g++
-CFLAGS=-O3
-CPPFLAGS=-O3 -std=c++11
+OPT=-O3
+CFLAGS=$(OPT)
+CPPFLAGS=$(OPT) -std=c++11
 
 all: chisq_spectrum_fit
+
+debug: OPT=-g
+debug: all
 
 chisq_spectrum_fit: xorshift.o chisq_spectrum_fit.o
 	$(CXX) -o chisq_spectrum_fit chisq_spectrum_fit.o xorshift.o

@@ -104,6 +104,55 @@ double calcChisqWgt(std::vector<double>& hn, std::vector<weightedBin>& hm) {
     return chisqSum;
 }
 
+double calcChisqNate(std::vector<double>& hn, std::vector<weightedBin>& hm) {
+    if(hn.size() != hm.size()) {
+        return -1.0;
+    }
+    double sumN = std::accumulate(hn.begin(), hn.end(), 0);
+    double sumM = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, weightedBin bin)->double{return sum + bin.wgt;});
+    
+    double chisqSum = 0.0;
+    for(int i = 0; i < hn.size(); i++) {
+        chisqSum += pow(hn[i]/sumN - hm[i].wgt/sumM,2)/(hn[i]/(sumN*sumN) + (hm[i].wgt*hm[i].wgt)/(sumM*sumM*hm[i].num));
+    }
+    return chisqSum;
+}
+
+void writeYOD(std::vector<weightedBin>& hm, char* oFile) { //function to write yoda histograms for professor minimizer
+    std::ofstream out;
+    out.open(oFile, std::ios::out);
+    out << std::scientific;
+    
+    double sumW = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, weightedBin bin)->double{return sum + bin.wgt;});
+    double sumW2 = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, weightedBin bin)->double{return sum + bin.wgtSqr;});
+    double num = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, weightedBin bin)->double{return sum + bin.num;});
+    double sumWx = 0.0;
+    double sumWx2 = 0.0;
+    for(int i = 0; i < hm.size(); i++) {
+        sumWx += i*hm[i].wgt/sumW;
+        sumWx2 += i*i*hm[i].wgt/sumW;
+    }
+    
+    out << "BEGIN YODA_HISTO1D_V2 /\n"
+            "Path: /\n";
+    out << "ScaledBy: " << 1.0/sumW << "\n";
+    out << "Title: \n"
+            "Type: Histo1D\n"
+            "---\n"
+            "# Mean: 1.000000e+00\n"
+            "# Area: 1.000000e+00\n"
+            "# ID\tID\tsumw\tsumw2\tsumwx\tsumwx2\tnumEntries\n";
+    out << "Total\tTotal\t1.000000e+00\t" << sumW2/sumW << "\t" << sumWx << "\t" << sumWx2 << "\t" << num << "\n";
+    out << "Underflow\tUnderflow\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\n"
+            "Overflow\tOverflow\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\n"
+            "# xlow\txhigh\tsumw\tsumw2\tsumwx\tsumwx2\tnumEntries\n";
+    for(int i = 0; i < hm.size(); i++) {
+        out << (double)i << "\t" << (double)(i+1) << "\t" << hm[i].wgt/sumW << "\t" << hm[i].wgtSqr/sumW << "\t" << i*hm[i].wgt/sumW << "\t" << i*i*hm[i].wgt/sumW << "\t" << hm[i].num << "\n";
+    }
+    out << "END YODA_HISTO1D\n";
+    out.close();
+}
+
 int main(int argc, char** argv) {
     initxorshift();
     //buff_len = 4 + 3*8 + 4
@@ -143,27 +192,34 @@ int main(int argc, char** argv) {
         randU01s[i] = nextU01();
     }
     
-    for(int i = 0; i < 21; i++) {
-        for(int j = 0; j < 21; j++) {
-            for(int k = 0; k < 21; k++) {
-                for(int l = 0; l < 21; l++) {
-                    double absProb = 0.15 + 0.15*k/20.0;
-                    double absCut = 0.5+3*l/20.0;
-                    double thresh = GRAV*MASS_N*(0.01+0.10*i/20.0)*JTONEV;
-                    double sat = GRAV*MASS_N*(0.2+0.18*j/20.0)*JTONEV;
-                    std::vector<weightedBin> hist1 = createHist(absProb, absCut, thresh, sat, events, randU01s);
-                    double chisqWgt = calcChisqWgt(refHist, hist1);
-                    double chisqUnWgt = calcChisq(refHist, hist1);
-    //                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
-                    printf("%f %f %f %f %f %f\n", absProb, absCut, thresh, sat, chisqWgt/hist1.size(), chisqUnWgt/hist1.size());
-                    fflush(stdout);
-                }
-            }
-        }
-    }
+    
+//    int nBins = 10;
+//    for(int i = 0; i < nBins+1; i++) {
+//        for(int j = 0; j < nBins+1; j++) {
+//            for(int k = 0; k < nBins+1; k++) {
+//                for(int l = 0; l < nBins+1; l++) {
+//                    double absProb = 0.15 + 0.15*k/(double)nBins;
+//                    double absCut = 0.5+3*l/(double)nBins;
+//                    double thresh = GRAV*MASS_N*(0.01+0.10*i/(double)nBins)*JTONEV;
+////                    double sat = GRAV*MASS_N*(0.2+0.18*j/(double)nBins)*JTONEV;
+//                    double sat = 20+14.5*j/(double)nBins;
+//                    std::vector<weightedBin> hist1 = createHist(absProb, absCut, thresh, sat, events, randU01s);
+//                    double chisqWgt = calcChisqWgt(refHist, hist1);
+//                    double chisqUnWgt = calcChisq(refHist, hist1);
+//                    double chisqNate = calcChisqNate(refHist, hist1);
+//    //                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
+//                    printf("%f %f %f %f %f %f %f\n", absProb, absCut, thresh, sat, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
+//                    fflush(stdout);
+//                }
+//            }
+//        }
+//    }
 
 //    std::vector<weightedBin> hist1 = createHist(0.155, 0.0, 15.377918, 17.428307, events, randU01s);
 //    std::vector<weightedBin> hist1 = createHist(0.26, 2.1, 5.125973, 30.755837, events, randU01s);
+//    std::vector<weightedBin> hist1 = createHist(0.225, 1.1, 7.176362, 22.9, events, randU01s); //Nate's chisq
+    std::vector<weightedBin> hist1 = createHist(0.27, 2.3, 5.125973, 34.5, events, randU01s); //Nate's chisq EdE
+    writeYOD(hist1, "test.yoda");
 //    double chisq = calcChisqWgt(refHist, hist1);
 //    double chisq2 = calcChisq(refHist, hist1);
 //    printf("%f %f\n\n", chisq/hist1.size(), chisq2/hist1.size());
