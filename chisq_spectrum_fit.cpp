@@ -29,7 +29,7 @@ typedef struct weightedBin {
     double num;
 } weightedBin;
 
-std::vector<weightedBin> createHist(double absProb, double absCut, double threshold, double saturation, std::vector<evt>& events, double* randU01s) {
+std::vector<weightedBin> createHist(double absProb, double absCut, double threshold, double saturation, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
 //void createHist(double absProb, double absCut, double threshold, double saturation, std::vector<evt>& events, double* randU01s) {
     std::vector<weightedBin> hist;
     weightedBin zero = {0.0, 0.0};
@@ -49,6 +49,9 @@ std::vector<weightedBin> createHist(double absProb, double absCut, double thresh
         for(int j = 0; j < 50; j++) {
             if(events[i].times[j] < 41) {
                 continue;
+            }
+            if(events[i].times[j] - 41 > randDeathTimes[i]) {
+                break;
             }
             if(events[i].times[j] >= 225) {
                 break;
@@ -131,6 +134,8 @@ void writeYOD(std::vector<weightedBin>& hm, char* oFile) { //function to write y
     for(int i = 0; i < hm.size(); i++) {
         sumWx += i*hm[i].wgt/sumW;
         sumWx2 += i*i*hm[i].wgt/sumW;
+//        sumWx += i*hm[i].wgt;
+//        sumWx2 += i*i*hm[i].wgt;
     }
     
     out << "BEGIN YODA_HISTO1D_V2 /\n"
@@ -139,15 +144,56 @@ void writeYOD(std::vector<weightedBin>& hm, char* oFile) { //function to write y
     out << "Title: \n"
             "Type: Histo1D\n"
             "---\n"
-            "# Mean: 1.000000e+00\n"
-            "# Area: 1.000000e+00\n"
+//            "# Mean: 1.000000e+00\n"
+//            "# Area: 1.000000e+00\n"
             "# ID\tID\tsumw\tsumw2\tsumwx\tsumwx2\tnumEntries\n";
-    out << "Total\tTotal\t1.000000e+00\t" << sumW2/sumW << "\t" << sumWx << "\t" << sumWx2 << "\t" << num << "\n";
+    out << "Total\tTotal\t1.000000e+00\t" << sumW2/(sumW*sumW) << "\t" << sumWx << "\t" << sumWx2 << "\t" << num << "\n";
+//    out << "Total\tTotal\t" << sumW << "\t" << sumW2 << "\t" << sumWx << "\t" << sumWx2 << "\t" << num << "\n";
     out << "Underflow\tUnderflow\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\n"
             "Overflow\tOverflow\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\n"
             "# xlow\txhigh\tsumw\tsumw2\tsumwx\tsumwx2\tnumEntries\n";
     for(int i = 0; i < hm.size(); i++) {
-        out << (double)i << "\t" << (double)(i+1) << "\t" << hm[i].wgt/sumW << "\t" << hm[i].wgtSqr/sumW << "\t" << i*hm[i].wgt/sumW << "\t" << i*i*hm[i].wgt/sumW << "\t" << hm[i].num << "\n";
+        out << (double)i << "\t" << (double)(i+1) << "\t" << hm[i].wgt/sumW << "\t" << hm[i].wgtSqr/(sumW*sumW) << "\t" << i*hm[i].wgt/sumW << "\t" << i*i*hm[i].wgt/sumW << "\t" << hm[i].num << "\n";
+//        out << (double)i << "\t" << (double)(i+1) << "\t" << hm[i].wgt << "\t" << hm[i].wgtSqr << "\t" << i*hm[i].wgt << "\t" << i*i*hm[i].wgt << "\t" << hm[i].num << "\n";
+    }
+    out << "END YODA_HISTO1D\n";
+    out.close();
+}
+
+void writeYODDouble(std::vector<double>& hm, char* oFile) { //function to write yoda histograms for professor minimizer
+    std::ofstream out;
+    out.open(oFile, std::ios::out);
+    out << std::scientific;
+
+    double sumW = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, double bin)->double{return sum + bin;});
+    double sumW2 = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, double bin)->double{return sum + bin;});
+    double num = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, double bin)->double{return sum + bin;});
+    double sumWx = 0.0;
+    double sumWx2 = 0.0;
+    for(int i = 0; i < hm.size(); i++) {
+        sumWx += i*hm[i]/sumW;
+        sumWx2 += i*i*hm[i]/sumW;
+//        sumWx += i*hm[i];
+//        sumWx2 += i*i*hm[i];
+    }
+
+    out << "BEGIN YODA_HISTO1D_V2 /\n"
+            "Path: /\n";
+    out << "ScaledBy: " << 1.0/sumW << "\n";
+    out << "Title: \n"
+            "Type: Histo1D\n"
+            "---\n"
+//            "# Mean: 1.000000e+00\n"
+//            "# Area: 1.000000e+00\n"
+            "# ID\tID\tsumw\tsumw2\tsumwx\tsumwx2\tnumEntries\n";
+//    out << "Total\tTotal\t" << sumW << "\t" << sumW2 << "\t" << sumWx << "\t" << sumWx2 << "\t" << num << "\n";
+    out << "Total\tTotal\t1.000000e+00\t" << sumW2/(sumW*sumW) << "\t" << sumWx << "\t" << sumWx2 << "\t" << num << "\n";
+    out << "Underflow\tUnderflow\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\n"
+            "Overflow\tOverflow\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\n"
+            "# xlow\txhigh\tsumw\tsumw2\tsumwx\tsumwx2\tnumEntries\n";
+    for(int i = 0; i < hm.size(); i++) {
+        out << (double)i << "\t" << (double)(i+1) << "\t" << hm[i]/sumW << "\t" << hm[i]/(sumW*sumW) << "\t" << i*hm[i]/sumW << "\t" << i*i*hm[i]/sumW << "\t" << hm[i] << "\n";
+//        out << (double)i << "\t" << (double)(i+1) << "\t" << hm[i] << "\t" << hm[i] << "\t" << i*hm[i] << "\t" << i*i*hm[i] << "\t" << hm[i] << "\n";
     }
     out << "END YODA_HISTO1D\n";
     out.close();
@@ -185,49 +231,93 @@ int main(int argc, char** argv) {
     printf("Read %lu Events!\n", events.size());
     
     double* randU01s = new double[events.size()*100];
+    double* randDeathTimes = new double[events.size()];
 //    randU01s = (double *)malloc(sizeof(double)*events.size()*100);
 //    randU01s = (double *)malloc(sizeof(double)*events.size()*100);
     
     for(unsigned long i = 0; i < events.size()*100; i++) {
         randU01s[i] = nextU01();
     }
+    for(unsigned long i = 0; i < events.size(); i++) {
+        randDeathTimes[i] = -877.7*log(nextU01());
+    }
     
     
-//    int nBins = 10;
-//    for(int i = 0; i < nBins+1; i++) {
-//        for(int j = 0; j < nBins+1; j++) {
-//            for(int k = 0; k < nBins+1; k++) {
-//                for(int l = 0; l < nBins+1; l++) {
-//                    double absProb = 0.15 + 0.15*k/(double)nBins;
-//                    double absCut = 0.5+3*l/(double)nBins;
-//                    double thresh = GRAV*MASS_N*(0.01+0.10*i/(double)nBins)*JTONEV;
-////                    double sat = GRAV*MASS_N*(0.2+0.18*j/(double)nBins)*JTONEV;
-//                    double sat = 20+14.5*j/(double)nBins;
-//                    std::vector<weightedBin> hist1 = createHist(absProb, absCut, thresh, sat, events, randU01s);
-//                    double chisqWgt = calcChisqWgt(refHist, hist1);
-//                    double chisqUnWgt = calcChisq(refHist, hist1);
-//                    double chisqNate = calcChisqNate(refHist, hist1);
-//    //                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
-//                    printf("%f %f %f %f %f %f %f\n", absProb, absCut, thresh, sat, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
-//                    fflush(stdout);
-//                }
-//            }
-//        }
-//    }
+    int nBins = 10;
+    for(int i = 0; i < nBins+1; i++) {
+        for(int j = 0; j < nBins+1; j++) {
+            for(int k = 0; k < nBins+1; k++) {
+                for(int l = 0; l < nBins+1; l++) {
+                    double absProb = 0.15 + 0.15*k/(double)nBins;
+                    double absCut = 0.5+3*l/(double)nBins;
+                    double thresh = GRAV*MASS_N*(0.01+0.10*i/(double)nBins)*JTONEV;
+//                    double sat = GRAV*MASS_N*(0.2+0.18*j/(double)nBins)*JTONEV;
+                    double sat = 20+14.5*j/(double)nBins;
+                    std::vector<weightedBin> hist1 = createHist(absProb, absCut, thresh, sat, events, randU01s, randDeathTimes);
+                    double chisqWgt = calcChisqWgt(refHist, hist1);
+                    double chisqUnWgt = calcChisq(refHist, hist1);
+                    double chisqNate = calcChisqNate(refHist, hist1);
+    //                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
+                    printf("%f %f %f %f %f %f %f\n", absProb, absCut, thresh, sat, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
+                    fflush(stdout);
+                }
+            }
+        }
+    }
 
-//    std::vector<weightedBin> hist1 = createHist(0.155, 0.0, 15.377918, 17.428307, events, randU01s);
-//    std::vector<weightedBin> hist1 = createHist(0.26, 2.1, 5.125973, 30.755837, events, randU01s);
-//    std::vector<weightedBin> hist1 = createHist(0.225, 1.1, 7.176362, 22.9, events, randU01s); //Nate's chisq
-    std::vector<weightedBin> hist1 = createHist(0.27, 2.3, 5.125973, 34.5, events, randU01s); //Nate's chisq EdE
-    writeYOD(hist1, "test.yoda");
-//    double chisq = calcChisqWgt(refHist, hist1);
-//    double chisq2 = calcChisq(refHist, hist1);
-//    printf("%f %f\n\n", chisq/hist1.size(), chisq2/hist1.size());
-//    for(auto it = hist1.begin(); it < hist1.end(); it++) {
-//        printf("%f,", it->wgt);
-//    }
-//    printf("\n");
-    
+//    std::vector<weightedBin> hist1 = createHist(0.155, 0.0, 15.377918, 17.428307, events, randU01s, randDeathTimes);
+//    std::vector<weightedBin> hist1 = createHist(0.26, 2.1, 5.125973, 30.755837, events, randU01s, randDeathTimes);
+//    std::vector<weightedBin> hist1 = createHist(0.225, 1.1, 7.176362, 22.9, events, randU01s, randDeathTimes); //Nate's chisq
+//    std::vector<weightedBin> hist1 = createHist(0.27, 2.3, 5.125973, 34.5, events, randU01s, randDeathTimes); //Nate's chisq EdE
+//      std::vector<weightedBin> hist1 = createHist(0.2551, 1.892, 5.701, 29.19, events, randU01s, randDeathTimes); //Prof II
+/*      double chisq = calcChisqWgt(refHist, hist1);
+      double chisq2 = calcChisq(refHist, hist1);
+      printf("%f %f\n\n", chisq/hist1.size(), chisq2/hist1.size());
+      for(auto it = hist1.begin(); it < hist1.end(); it++) {
+          printf("%f,", it->wgt);
+      }
+      printf("\n");*/
+
+/*    char paramFile[256];
+    char histFile[256];
+    double eff;
+    double thr;
+    double cut;
+    double sat;
+    for(int i = 0; i < 1296; i++) {
+        sprintf(paramFile, "professor/scan/%04d/params.dat", i);
+        sprintf(histFile, "professor/scan/%04d/hist.yoda", i);
+        std::ifstream params(paramFile, std::ios::in);
+        std::string input;
+        std::string paramVal;
+
+        std::getline(params, input);
+        paramVal = input.substr(input.find_first_of("-0123456789"));
+//        printf("%s\n", paramVal.c_str());
+        eff = atof(paramVal.c_str());
+
+        std::getline(params, input);
+        paramVal = input.substr(input.find_first_of("-0123456789"));
+//        printf("%s\n", paramVal.c_str());
+        thr = atof(paramVal.c_str());
+
+        std::getline(params, input);
+        paramVal = input.substr(input.find_first_of("-0123456789"));
+//        printf("%s\n", paramVal.c_str());
+        cut = atof(paramVal.c_str());
+
+        std::getline(params, input);
+        paramVal = input.substr(input.find_first_of("-0123456789"));
+//        printf("%s\n", paramVal.c_str());
+        sat = atof(paramVal.c_str());
+
+        params.close();
+        printf("%f %f %f %f\n", eff, thr, cut, sat);
+        std::vector<weightedBin> hist1 = createHist(eff, thr, cut, sat, events, randU01s, randDeathTimes);
+        writeYOD(hist1, histFile);
+    }
+    writeYODDouble(refHist, "professor/hist.yoda");*/
+
     delete[] randU01s;
     delete[] buf;
 
