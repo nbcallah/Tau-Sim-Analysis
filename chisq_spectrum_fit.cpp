@@ -48,19 +48,6 @@ typedef struct weightedBin {
     double num;
 } weightedBin;
 
-bool absorb(double ePerp, double u, double fracCarb) {
-//    printf("%f\n", contam);
-    double v = 2*M_PI*HBAR*HBAR*(NCARBON*fracCarb)*ACARBON/MASS_N + 2*M_PI*HBAR*HBAR*(NBORON*(1-fracCarb))*ABORON/MASS_N;
-    double w = HBAR*(NBORON*(1-fracCarb))*SIGMABORON/2;
-    double alpha = sqrt((v-ePerp)*(v-ePerp) + w*w);
-    double prob = 1 - 
-        (ePerp - sqrt(ePerp)*sqrt(2*alpha - 2*(v-ePerp)) + alpha)
-        /
-        (ePerp + sqrt(ePerp)*sqrt(2*alpha - 2*(v-ePerp)) + alpha);
-//    printf("%e %e %e %e %e\n", ePerp, prob, v, w, alpha);
-    return u < prob ? true : false;
-}
-
 std::vector<std::complex<double>> matmul(std::vector<std::complex<double>> a, std::vector<std::complex<double>> b) {
     std::vector<std::complex<double>> res = {std::complex<double>(0,0), std::complex<double>(0,0), std::complex<double>(0,0), std::complex<double>(0,0)};
     if(a.size() != 4 || b.size() != 4) {
@@ -116,83 +103,6 @@ bool absorbMultilayer(double ePerp, double u, double thick) {
     return false; 
 }
 
-std::vector<weightedBin> createHistQuant(double fracCarb, double threshold, double saturation, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
-//void createHist(double absProb, double absCut, double threshold, double saturation, std::vector<evt>& events, double* randU01s) {
-    std::vector<weightedBin> hist;
-    weightedBin zero = {0.0, 0.0};
-    hist.resize(184, zero);
-    for(unsigned long i = 0; i < events.size(); i++) {
-        double weight = 0.0;
-        if(events[i].energy*JTONEV < threshold) {
-            continue;
-        }
-        if(events[i].energy*JTONEV >= threshold && events[i].energy*JTONEV < saturation) {
-            weight = 1.0/(saturation - threshold)*(events[i].energy*JTONEV - threshold);
-        }
-        else {
-             weight = 1.0;
-        }
-
-        for(int j = 0; j < 50; j++) {
-            if(events[i].times[j] < 41) {
-                continue;
-            }
-            if(events[i].times[j] - 41 > randDeathTimes[i]) {
-                break;
-            }
-            if(events[i].times[j] >= 225) {
-                break;
-            }
-            if(absorb(events[i].ePerp[j], randU01s[i*100 + j], fracCarb)) {
-                if(int(events[i].times[j])-41 > 183) {
-                    printf("Boo!\n");
-                }
-                hist[int(events[i].times[j])-41].wgt += weight;
-                hist[int(events[i].times[j])-41].wgtSqr += weight*weight;
-                hist[int(events[i].times[j])-41].num += 1;
-                break;
-            }
-        }
-    }
-    return hist;
-}
-
-std::vector<weightedBin> createHistQuantEdE(double fracCarb, double threshold, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
-//void createHist(double absProb, double absCut, double threshold, double saturation, std::vector<evt>& events, double* randU01s) {
-    std::vector<weightedBin> hist;
-    weightedBin zero = {0.0, 0.0};
-    hist.resize(184, zero);
-    for(unsigned long i = 0; i < events.size(); i++) {
-        double weight = 0.0;
-        if(events[i].energy*JTONEV < threshold) {
-            continue;
-        }
-        weight = events[i].energy*JTONEV/34.5;
-
-        for(int j = 0; j < 50; j++) {
-            if(events[i].times[j] < 41) {
-                continue;
-            }
-            if(events[i].times[j] - 41 > randDeathTimes[i]) {
-                break;
-            }
-            if(events[i].times[j] >= 225) {
-                break;
-            }
-            if(absorb(events[i].ePerp[j], randU01s[i*100 + j], fracCarb)) {
-                if(int(events[i].times[j])-41 > 183) {
-                    printf("Boo!\n");
-                }
-                hist[int(events[i].times[j])-41].wgt += weight;
-                hist[int(events[i].times[j])-41].wgtSqr += weight*weight;
-                hist[int(events[i].times[j])-41].num += 1;
-                break;
-            }
-        }
-    }
-    return hist;
-}
-
 std::vector<weightedBin> createHistQuantMultilayerEdE(double thick, double threshold, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
 //void createHist(double absProb, double absCut, double threshold, double saturation, std::vector<evt>& events, double* randU01s) {
     std::vector<weightedBin> hist;
@@ -216,47 +126,6 @@ std::vector<weightedBin> createHistQuantMultilayerEdE(double thick, double thres
                 break;
             }
             if(absorbMultilayer(events[i].ePerp[j], randU01s[i*100 + j], thick)) {
-                if(int(events[i].times[j])-41 > 183) {
-                    printf("Boo!\n");
-                }
-                hist[int(events[i].times[j])-41].wgt += weight;
-                hist[int(events[i].times[j])-41].wgtSqr += weight*weight;
-                hist[int(events[i].times[j])-41].num += 1;
-                break;
-            }
-        }
-    }
-    return hist;
-}
-
-std::vector<weightedBin> createHist(double absProb, double absCut, double threshold, double saturation, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
-//void createHist(double absProb, double absCut, double threshold, double saturation, std::vector<evt>& events, double* randU01s) {
-    std::vector<weightedBin> hist;
-    weightedBin zero = {0.0, 0.0};
-    hist.resize(184, zero);
-    for(unsigned long i = 0; i < events.size(); i++) {
-        double weight = 0.0;
-        if(events[i].energy*JTONEV < threshold) {
-            continue;
-        }
-        if(events[i].energy*JTONEV >= threshold && events[i].energy*JTONEV < saturation) {
-            weight = 1.0/(saturation - threshold)*(events[i].energy*JTONEV - threshold);
-        }
-        else {
-             weight = 1.0;
-        }
-
-        for(int j = 0; j < 50; j++) {
-            if(events[i].times[j] < 41) {
-                continue;
-            }
-            if(events[i].times[j] - 41 > randDeathTimes[i]) {
-                break;
-            }
-            if(events[i].times[j] >= 225) {
-                break;
-            }
-            if(events[i].ePerp[j]*JTONEV > absCut && randU01s[i*100 + j] < absProb) {
                 if(int(events[i].times[j])-41 > 183) {
                     printf("Boo!\n");
                 }
@@ -321,84 +190,6 @@ double calcChisqNate(std::vector<double>& hn, std::vector<weightedBin>& hm) {
     return chisqSum;
 }
 
-void writeYOD(std::vector<weightedBin>& hm, char* oFile) { //function to write yoda histograms for professor minimizer
-    std::ofstream out;
-    out.open(oFile, std::ios::out);
-    out << std::scientific;
-    
-    double sumW = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, weightedBin bin)->double{return sum + bin.wgt;});
-    double sumW2 = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, weightedBin bin)->double{return sum + bin.wgtSqr;});
-    double num = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, weightedBin bin)->double{return sum + bin.num;});
-    double sumWx = 0.0;
-    double sumWx2 = 0.0;
-    for(int i = 0; i < hm.size(); i++) {
-        sumWx += i*hm[i].wgt/sumW;
-        sumWx2 += i*i*hm[i].wgt/sumW;
-//        sumWx += i*hm[i].wgt;
-//        sumWx2 += i*i*hm[i].wgt;
-    }
-    
-    out << "BEGIN YODA_HISTO1D_V2 /\n"
-            "Path: /\n";
-    out << "ScaledBy: " << 1.0/sumW << "\n";
-    out << "Title: \n"
-            "Type: Histo1D\n"
-            "---\n"
-//            "# Mean: 1.000000e+00\n"
-//            "# Area: 1.000000e+00\n"
-            "# ID\tID\tsumw\tsumw2\tsumwx\tsumwx2\tnumEntries\n";
-    out << "Total\tTotal\t1.000000e+00\t" << sumW2/(sumW*sumW) << "\t" << sumWx << "\t" << sumWx2 << "\t" << num << "\n";
-//    out << "Total\tTotal\t" << sumW << "\t" << sumW2 << "\t" << sumWx << "\t" << sumWx2 << "\t" << num << "\n";
-    out << "Underflow\tUnderflow\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\n"
-            "Overflow\tOverflow\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\n"
-            "# xlow\txhigh\tsumw\tsumw2\tsumwx\tsumwx2\tnumEntries\n";
-    for(int i = 0; i < hm.size(); i++) {
-        out << (double)i << "\t" << (double)(i+1) << "\t" << hm[i].wgt/sumW << "\t" << hm[i].wgtSqr/(sumW*sumW) << "\t" << i*hm[i].wgt/sumW << "\t" << i*i*hm[i].wgt/sumW << "\t" << hm[i].num << "\n";
-//        out << (double)i << "\t" << (double)(i+1) << "\t" << hm[i].wgt << "\t" << hm[i].wgtSqr << "\t" << i*hm[i].wgt << "\t" << i*i*hm[i].wgt << "\t" << hm[i].num << "\n";
-    }
-    out << "END YODA_HISTO1D\n";
-    out.close();
-}
-
-void writeYODDouble(std::vector<double>& hm, char* oFile) { //function to write yoda histograms for professor minimizer
-    std::ofstream out;
-    out.open(oFile, std::ios::out);
-    out << std::scientific;
-
-    double sumW = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, double bin)->double{return sum + bin;});
-    double sumW2 = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, double bin)->double{return sum + bin;});
-    double num = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, double bin)->double{return sum + bin;});
-    double sumWx = 0.0;
-    double sumWx2 = 0.0;
-    for(int i = 0; i < hm.size(); i++) {
-        sumWx += i*hm[i]/sumW;
-        sumWx2 += i*i*hm[i]/sumW;
-//        sumWx += i*hm[i];
-//        sumWx2 += i*i*hm[i];
-    }
-
-    out << "BEGIN YODA_HISTO1D_V2 /\n"
-            "Path: /\n";
-    out << "ScaledBy: " << 1.0/sumW << "\n";
-    out << "Title: \n"
-            "Type: Histo1D\n"
-            "---\n"
-//            "# Mean: 1.000000e+00\n"
-//            "# Area: 1.000000e+00\n"
-            "# ID\tID\tsumw\tsumw2\tsumwx\tsumwx2\tnumEntries\n";
-//    out << "Total\tTotal\t" << sumW << "\t" << sumW2 << "\t" << sumWx << "\t" << sumWx2 << "\t" << num << "\n";
-    out << "Total\tTotal\t1.000000e+00\t" << sumW2/(sumW*sumW) << "\t" << sumWx << "\t" << sumWx2 << "\t" << num << "\n";
-    out << "Underflow\tUnderflow\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\n"
-            "Overflow\tOverflow\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\t0.000000e+00\n"
-            "# xlow\txhigh\tsumw\tsumw2\tsumwx\tsumwx2\tnumEntries\n";
-    for(int i = 0; i < hm.size(); i++) {
-        out << (double)i << "\t" << (double)(i+1) << "\t" << hm[i]/sumW << "\t" << hm[i]/(sumW*sumW) << "\t" << i*hm[i]/sumW << "\t" << i*i*hm[i]/sumW << "\t" << hm[i] << "\n";
-//        out << (double)i << "\t" << (double)(i+1) << "\t" << hm[i] << "\t" << hm[i] << "\t" << i*hm[i] << "\t" << i*i*hm[i] << "\t" << hm[i] << "\n";
-    }
-    out << "END YODA_HISTO1D\n";
-    out.close();
-}
-
 int main(int argc, char** argv) {
     initxorshift();
     //buff_len = 4 + 3*8 + 4
@@ -442,68 +233,6 @@ int main(int argc, char** argv) {
         randDeathTimes[i] = -877.7*log(nextU01());
     }
     
-    
-/*    int nBins = 20;
-    #pragma omp parallel for collapse(4)
-    for(int i = 0; i < nBins+1; i++) {
-        for(int j = 0; j < nBins+1; j++) {
-            for(int k = 0; k < nBins+1; k++) {
-                for(int l = 0; l < nBins+1; l++) {
-//                    double absProb = 0.15 + 0.15*k/(double)nBins;
-//                    double absCut = 0.5+3*l/(double)nBins;
-//                    double thresh = GRAV*MASS_N*(0.01+0.10*i/(double)nBins)*JTONEV;
-//                    double sat = 20+14.5*j/(double)nBins;
-                    double absProb = 0.22 + 0.12*k/(double)nBins;
-                    double absCut = 1.5+2*l/(double)nBins;
-                    double thresh = 2.0+4.0*i/(double)nBins;
-                    double sat = 24+10.5*j/(double)nBins;
-                    std::vector<weightedBin> hist1 = createHist(absProb, absCut, thresh, sat, events, randU01s, randDeathTimes);
-                    double chisqWgt = calcChisqWgt(refHist, hist1);
-                    double chisqUnWgt = calcChisq(refHist, hist1);
-                    double chisqNate = calcChisqNate(refHist, hist1);
-    //                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
-                    printf("%f %f %f %f %f %f %f\n", absProb, absCut, thresh, sat, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
-                    fflush(stdout);
-                }
-            }
-        }
-    }*/
-    
-    /*int nBins = 20;
-    #pragma omp parallel for collapse(3)
-    for(int i = 0; i < nBins+1; i++) {
-        for(int j = 0; j < nBins+1; j++) {
-            for(int k = 0; k < nBins+1; k++) {
-                double thresh = 2.0 + 4.0*i/(double)nBins;
-                double sat = 24 + 10.5*j/(double)nBins;
-                double contam = 0.31 + 0.04*k/(double)nBins;
-                std::vector<weightedBin> hist1 = createHistQuant(contam, thresh, sat, events, randU01s, randDeathTimes);
-                double chisqWgt = calcChisqWgt(refHist, hist1);
-                double chisqUnWgt = calcChisq(refHist, hist1);
-                double chisqNate = calcChisqNate(refHist, hist1);
-//                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
-                printf("%f %f %f %f %f %f\n", contam, thresh, sat, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
-                fflush(stdout);
-            }
-        }
-    }*/
-    
-    /*int nBins = 20;
-    #pragma omp parallel for collapse(2)
-    for(int i = 0; i < nBins+1; i++) {
-        for(int j = 0; j < nBins+1; j++) {
-            double thresh = 2.0 + 4.0*i/(double)nBins;
-            double contam = 0.31 + 0.04*j/(double)nBins;
-            std::vector<weightedBin> hist1 = createHistQuantEdE(contam, thresh, events, randU01s, randDeathTimes);
-            double chisqWgt = calcChisqWgt(refHist, hist1);
-            double chisqUnWgt = calcChisq(refHist, hist1);
-            double chisqNate = calcChisqNate(refHist, hist1);
-//                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
-            printf("%f %f %f %f %f\n", contam, thresh, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
-            fflush(stdout);
-        }
-    }*/
-    
     int nBins = 20;
     #pragma omp parallel for collapse(2)
     for(int i = 0; i < nBins+1; i++) {
@@ -519,18 +248,6 @@ int main(int argc, char** argv) {
             fflush(stdout);
         }
     }
-    
-    /*int nBins = 100;
-    for(int i = 0; i < nBins+1; i++) {
-        double contam = 0.2 + 0.2*i/(double)nBins;
-        std::vector<weightedBin> hist1 = createHistQuantEdE(contam, 0.0, events, randU01s, randDeathTimes);
-        double chisqWgt = calcChisqWgt(refHist, hist1);
-        double chisqUnWgt = calcChisq(refHist, hist1);
-        double chisqNate = calcChisqNate(refHist, hist1);
-//                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
-        printf("%f %f %f %f %f\n", contam, 0.0, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
-        fflush(stdout);
-    }*/
 
 //    std::vector<weightedBin> hist1 = createHist(0.155, 0.0, 15.377918, 17.428307, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHist(0.26, 2.1, 5.125973, 30.755837, events, randU01s, randDeathTimes);
@@ -553,46 +270,6 @@ int main(int argc, char** argv) {
           printf("%f,", it->wgt);
       }
       printf("\n");*/
-
-/*    char paramFile[256];
-    char histFile[256];
-    double eff;
-    double thr;
-    double cut;
-    double sat;
-    for(int i = 0; i < 1296; i++) {
-        sprintf(paramFile, "professor/scan/%04d/params.dat", i);
-        sprintf(histFile, "professor/scan/%04d/hist.yoda", i);
-        std::ifstream params(paramFile, std::ios::in);
-        std::string input;
-        std::string paramVal;
-
-        std::getline(params, input);
-        paramVal = input.substr(input.find_first_of("-0123456789"));
-//        printf("%s\n", paramVal.c_str());
-        eff = atof(paramVal.c_str());
-
-        std::getline(params, input);
-        paramVal = input.substr(input.find_first_of("-0123456789"));
-//        printf("%s\n", paramVal.c_str());
-        thr = atof(paramVal.c_str());
-
-        std::getline(params, input);
-        paramVal = input.substr(input.find_first_of("-0123456789"));
-//        printf("%s\n", paramVal.c_str());
-        cut = atof(paramVal.c_str());
-
-        std::getline(params, input);
-        paramVal = input.substr(input.find_first_of("-0123456789"));
-//        printf("%s\n", paramVal.c_str());
-        sat = atof(paramVal.c_str());
-
-        params.close();
-        printf("%f %f %f %f\n", eff, thr, cut, sat);
-        std::vector<weightedBin> hist1 = createHist(eff, thr, cut, sat, events, randU01s, randDeathTimes);
-        writeYOD(hist1, histFile);
-    }
-    writeYODDouble(refHist, "professor/hist.yoda");*/
 
     delete[] randU01s;
     delete[] buf;
