@@ -77,7 +77,7 @@ std::vector<std::complex<double>> m(std::complex<double> kn, std::complex<double
     return res;
 }
 
-bool absorbMultilayer(double ePerp, double u, double thick) {
+bool absorbMultilayer(double ePerp, double u, double thickCarb, double thickBoron) {
     const double vcarbon = (2*M_PI*(HBAR*HBAR)/MASS_N)*ACARBON*NCARBON;
     const double wcarbon = (HBAR/2)*NCARBON*SIGMACARBON;
     const double vboron = (2*M_PI*(HBAR*HBAR)/MASS_N)*ABORON*NBORON;
@@ -90,7 +90,7 @@ bool absorbMultilayer(double ePerp, double u, double thick) {
                                               std::complex<double>(vboron, -wboron),
                                               std::complex<double>(vzns, -wzns)};
     std::vector<std::complex<double>> mbar = {std::complex<double>(1,0), std::complex<double>(0,0), std::complex<double>(0,0), std::complex<double>(1,0)};
-    std::vector<double> zs = {0.0, thick*1e-9, thick*1e-9 + 20e-9, 10000e-9};
+    std::vector<double> zs = {0.0, thickCarb*1e-9, thickCarb*1e-9 + thickBoron*1e-9, 10000e-9};
     
     for(int i = pots.size(); i > 0; i--) {
         mbar = matmul(mbar, m(k(ePerp, pots[i]), k(ePerp, pots[i-1]), zs[i-1]));
@@ -103,11 +103,12 @@ bool absorbMultilayer(double ePerp, double u, double thick) {
     return false; 
 }
 
-std::vector<weightedBin> createHistQuantMultilayerEdE(double thick, double threshold, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
+std::vector<weightedBin> createHistQuantMultilayerEdE(double thickCarb, double thickBoron, double threshold, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
 //void createHist(double absProb, double absCut, double threshold, double saturation, std::vector<evt>& events, double* randU01s) {
     std::vector<weightedBin> hist;
     weightedBin zero = {0.0, 0.0};
     hist.resize(184, zero);
+    int numCount = 0;
     for(unsigned long i = 0; i < events.size(); i++) {
         double weight = 0.0;
         if(events[i].energy*JTONEV < threshold) {
@@ -125,17 +126,19 @@ std::vector<weightedBin> createHistQuantMultilayerEdE(double thick, double thres
             if(events[i].times[j] >= 225) {
                 break;
             }
-            if(absorbMultilayer(events[i].ePerp[j], randU01s[i*100 + j], thick)) {
+            if(absorbMultilayer(events[i].ePerp[j], randU01s[i*100 + j], thickCarb, thickBoron)) {
                 if(int(events[i].times[j])-41 > 183) {
                     printf("Boo!\n");
                 }
                 hist[int(events[i].times[j])-41].wgt += weight;
                 hist[int(events[i].times[j])-41].wgtSqr += weight*weight;
                 hist[int(events[i].times[j])-41].num += 1;
+                numCount += 1;
                 break;
             }
         }
     }
+    printf("%d\n", numCount);
     return hist;
 }
 
@@ -233,21 +236,45 @@ int main(int argc, char** argv) {
         randDeathTimes[i] = -877.7*log(nextU01());
     }
     
-    int nBins = 20;
-    #pragma omp parallel for collapse(2)
+    int nBins = 9;
+    #pragma omp parallel for collapse(3)
     for(int i = 0; i < nBins+1; i++) {
         for(int j = 0; j < nBins+1; j++) {
-            double thresh = 2.0 + 4.0*i/(double)nBins;
-            double thick = 0 + 20*j/(double)nBins;
-            std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(thick, thresh, events, randU01s, randDeathTimes);
-            double chisqWgt = calcChisqWgt(refHist, hist1);
-            double chisqUnWgt = calcChisq(refHist, hist1);
-            double chisqNate = calcChisqNate(refHist, hist1);
-//                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
-            printf("%f %f %f %f %f\n", thick, thresh, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
-            fflush(stdout);
+            for(int k = 0; k < nBins+1; k++) {
+                double thresh = 2.0 + 4.0*i/(double)nBins;
+                double thickCarb = 2 + 9*j/(double)nBins;
+                double thickBoron = 10 + 30*k/(double)nBins;
+                std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(thickCarb, thickBoron, thresh, events, randU01s, randDeathTimes);
+                double chisqWgt = calcChisqWgt(refHist, hist1);
+                double chisqUnWgt = calcChisq(refHist, hist1);
+                double chisqNate = calcChisqNate(refHist, hist1);
+    //                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
+                printf("%f %f %f %f %f %f\n", thickCarb, thickBoron, thresh, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
+                fflush(stdout);
+            }
         }
     }
+    
+//    double thresh = 5;
+//    double thick = 4;
+//    std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(thick, thresh, events, randU01s, randDeathTimes);
+//    double chisqWgt = calcChisqWgt(refHist, hist1);
+//    double chisqUnWgt = calcChisq(refHist, hist1);
+//    double chisqNate = calcChisqNate(refHist, hist1);
+////                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
+//    printf("%f %f %f %f %f\n", thick, thresh, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
+//    fflush(stdout);
+//    thresh = 6;
+//    thick = 5;
+//    hist1 = createHistQuantMultilayerEdE(thick, thresh, events, randU01s, randDeathTimes);
+//    chisqWgt = calcChisqWgt(refHist, hist1);
+//    chisqUnWgt = calcChisq(refHist, hist1);
+//    chisqNate = calcChisqNate(refHist, hist1);
+////                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
+//    printf("%f %f %f %f %f\n", thick, thresh, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
+//    fflush(stdout);
+    
+    
 
 //    std::vector<weightedBin> hist1 = createHist(0.155, 0.0, 15.377918, 17.428307, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHist(0.26, 2.1, 5.125973, 30.755837, events, randU01s, randDeathTimes);
@@ -263,13 +290,14 @@ int main(int argc, char** argv) {
 //      std::vector<weightedBin> hist1 = createHistQuant(0.31, 6.0, 24.0, events, randU01s, randDeathTimes); //quant frac zoom
 //      std::vector<weightedBin> hist1 = createHistQuantEdE(0.35, 0.0, events, randU01s, randDeathTimes); //quant frac zoom
 //      std::vector<weightedBin> hist1 = createHistQuantEdE(0.32, 0.0, events, randU01s, randDeathTimes); //quant EdE opt, no cutoff
-/*      double chisq = calcChisqWgt(refHist, hist1);
-      double chisq2 = calcChisq(refHist, hist1);
-      printf("%f %f\n\n", chisq/hist1.size(), chisq2/hist1.size());
-      for(auto it = hist1.begin(); it < hist1.end(); it++) {
-          printf("%f,", it->wgt);
-      }
-      printf("\n");*/
+    /*std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(5, 20, 5, events, randU01s, randDeathTimes);
+    double chisq = calcChisqWgt(refHist, hist1);
+    double chisq2 = calcChisq(refHist, hist1);
+    printf("%f %f\n\n", chisq/hist1.size(), chisq2/hist1.size());
+    for(auto it = hist1.begin(); it < hist1.end(); it++) {
+      printf("%f,", it->wgt);
+    }
+    printf("\n");*/
 
     delete[] randU01s;
     delete[] buf;
