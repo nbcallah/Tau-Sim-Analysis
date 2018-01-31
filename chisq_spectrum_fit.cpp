@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstring>
 #include <complex>
+#include <gsl/gsl_spline.h>
 
 extern "C" {
     #include "xorshift.h"
@@ -17,9 +18,14 @@ extern "C" {
 #define JTONEV 6.2415091e27
 #define HBAR 1.054571800e-34
 
+#define NBORONB2O3 8.824e27
 #define NBORON 1.37e29
 #define ABORON -0.1e-15
 #define SIGMABORON 2200*3.835e-25
+
+#define NOXYGENB2O3 1.32e28
+#define AOXYGEN 5.803e-15
+#define SIGMAOXYGEN 4.232e-28
 
 #define NCARBON 1.133e29
 #define ACARBON 6.6460e-15
@@ -77,33 +83,59 @@ std::vector<std::complex<double>> m(std::complex<double> kn, std::complex<double
     return res;
 }
 
-bool absorbMultilayer(double ePerp, double u, double thickCarb, double thickBoron) {
-    const double vcarbon = (2*M_PI*(HBAR*HBAR)/MASS_N)*ACARBON*NCARBON;
-    const double wcarbon = (HBAR/2)*NCARBON*SIGMACARBON;
+double absorbProbQuantOxide(double ePerp, double thickOxide, double thickBoron) {
+    const double voxide = (2*M_PI*(HBAR*HBAR)/MASS_N)*ABORON*NBORONB2O3 + (2*M_PI*(HBAR*HBAR)/MASS_N)*AOXYGEN*NOXYGENB2O3;
+    const double woxide = (HBAR/2)*NBORONB2O3*SIGMABORON + (HBAR/2)*NOXYGENB2O3*SIGMAOXYGEN;
     const double vboron = (2*M_PI*(HBAR*HBAR)/MASS_N)*ABORON*NBORON;
     const double wboron = (HBAR/2)*NBORON*SIGMABORON;
     const double vzns = (2*M_PI*(HBAR*HBAR)/MASS_N)*AZINC*NZINC + (2*M_PI*(HBAR*HBAR)/MASS_N)*ASULFUR*NSULFUR;
     const double wzns = (HBAR/2)*NZINC*SIGMAZINC + (HBAR/2)*NSULFUR*SIGMASULFUR;
     
     std::vector<std::complex<double>> pots = {std::complex<double>(0, 0),
-                                              std::complex<double>(vcarbon, -wcarbon),
+//                                              std::complex<double>(vcarbon, -wcarbon),
+                                              std::complex<double>(voxide, -woxide),
                                               std::complex<double>(vboron, -wboron),
                                               std::complex<double>(vzns, -wzns)};
     std::vector<std::complex<double>> mbar = {std::complex<double>(1,0), std::complex<double>(0,0), std::complex<double>(0,0), std::complex<double>(1,0)};
-    std::vector<double> zs = {0.0, thickCarb*1e-9, thickCarb*1e-9 + thickBoron*1e-9, 10000e-9};
+    std::vector<double> zs = {0.0, thickOxide*1e-9, thickOxide*1e-9 + thickBoron*1e-9, 10000e-9};
     
-    for(int i = pots.size(); i > 0; i--) {
+    for(int i = pots.size()-1; i > 0; i--) {
         mbar = matmul(mbar, m(k(ePerp, pots[i]), k(ePerp, pots[i-1]), zs[i-1]));
     }
     
-    double refl = (std::conj(-mbar[2]/mbar[3])*-mbar[2]/mbar[3]).real();    
-    if(u < (1-refl)) {
+    return 1.0 - (std::conj(-mbar[2]/mbar[3])*-mbar[2]/mbar[3]).real();
+}
+
+bool absorbMultilayer(double ePerp, double u, double thickOxide, double thickBoron) {
+    if(u < absorbProbQuantOxide(ePerp, thickOxide, thickBoron)) {
         return true;
     }
     return false; 
 }
 
-std::vector<weightedBin> createHistQuantMultilayerEdE(double thickCarb, double thickBoron, double threshold, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
+bool absorbSpline(double ePerp, double u, gsl_spline *spline, gsl_interp_accel *acc) {
+    double abs = gsl_spline_eval(spline, ePerp, acc);
+    if(u < abs) {
+        return true;
+    }
+    return false;
+}
+
+void createSplineQuantOxide(double thickOxide, double thickBoron, gsl_spline **spline, gsl_interp_accel **acc) {
+    *acc = gsl_interp_accel_alloc();
+    *spline = gsl_spline_alloc(gsl_interp_akima, 1001);
+    double xs[1001];
+    double ys[1001];
+    xs[0] = 0.0;
+    ys[0] = 0.0;
+    for(int i = 1; i < 1001; i++) {
+        xs[i] = 0.0 + i*((50.0/JTONEV)/1000.0);
+        ys[i] = absorbProbQuantOxide(xs[i], thickOxide, thickBoron);
+    }
+    gsl_spline_init(*spline, xs, ys, 1001);
+}
+
+std::vector<weightedBin> createHistQuantMultilayerEdE(double thickOxide, double thickBoron, double threshold, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
 //void createHist(double absProb, double absCut, double threshold, double saturation, std::vector<evt>& events, double* randU01s) {
     std::vector<weightedBin> hist;
     weightedBin zero = {0.0, 0.0};
@@ -126,7 +158,7 @@ std::vector<weightedBin> createHistQuantMultilayerEdE(double thickCarb, double t
             if(events[i].times[j] >= 225) {
                 break;
             }
-            if(absorbMultilayer(events[i].ePerp[j], randU01s[i*100 + j], thickCarb, thickBoron)) {
+            if(absorbMultilayer(events[i].ePerp[j], randU01s[i*100 + j], thickOxide, thickBoron)) {
                 if(int(events[i].times[j])-41 > 183) {
                     printf("Boo!\n");
                 }
@@ -139,6 +171,50 @@ std::vector<weightedBin> createHistQuantMultilayerEdE(double thickCarb, double t
         }
     }
     printf("%d\n", numCount);
+    return hist;
+}
+
+std::vector<weightedBin> createHistQuantMultilayerEdESpline(double thickOxide, double thickBoron, double threshold, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
+    gsl_spline *spline;
+    gsl_interp_accel *acc;
+    createSplineQuantOxide(thickOxide, thickBoron, &spline, &acc);
+    std::vector<weightedBin> hist;
+    weightedBin zero = {0.0, 0.0};
+    hist.resize(184, zero);
+    int numCount = 0;
+    for(unsigned long i = 0; i < events.size(); i++) {
+        double weight = 0.0;
+        if(events[i].energy*JTONEV < threshold) {
+            continue;
+        }
+        weight = events[i].energy*JTONEV/34.5;
+
+        for(int j = 0; j < 50; j++) {
+            if(events[i].times[j] < 41) {
+                continue;
+            }
+            if(events[i].times[j] - 41 > randDeathTimes[i]) {
+                break;
+            }
+            if(events[i].times[j] >= 225) {
+                break;
+            }
+//            if(absorbMultilayer(events[i].ePerp[j], randU01s[i*100 + j], thickOxide, thickBoron)) {
+            if(absorbSpline(events[i].ePerp[j], randU01s[i*100 + j], spline, acc)) {
+                if(int(events[i].times[j])-41 > 183) {
+                    printf("Boo!\n");
+                }
+                hist[int(events[i].times[j])-41].wgt += weight;
+                hist[int(events[i].times[j])-41].wgtSqr += weight*weight;
+                hist[int(events[i].times[j])-41].num += 1;
+                numCount += 1;
+                break;
+            }
+        }
+    }
+    printf("%d\n", numCount);
+    gsl_spline_free(spline);
+    gsl_interp_accel_free(acc);
     return hist;
 }
 
@@ -236,20 +312,22 @@ int main(int argc, char** argv) {
         randDeathTimes[i] = -877.7*log(nextU01());
     }
     
-    int nBins = 9;
+    int nBins = 20;
     #pragma omp parallel for collapse(3)
     for(int i = 0; i < nBins+1; i++) {
         for(int j = 0; j < nBins+1; j++) {
             for(int k = 0; k < nBins+1; k++) {
                 double thresh = 2.0 + 4.0*i/(double)nBins;
-                double thickCarb = 2 + 9*j/(double)nBins;
-                double thickBoron = 10 + 30*k/(double)nBins;
-                std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(thickCarb, thickBoron, thresh, events, randU01s, randDeathTimes);
+                double thickOxide = 0 + 30*j/(double)nBins;
+                double thickBoron = 0 + 30*k/(double)nBins;
+                std::vector<weightedBin> hist1 = createHistQuantMultilayerEdESpline(thickOxide, thickBoron, thresh, events, randU01s, randDeathTimes);
                 double chisqWgt = calcChisqWgt(refHist, hist1);
                 double chisqUnWgt = calcChisq(refHist, hist1);
                 double chisqNate = calcChisqNate(refHist, hist1);
-    //                printf("%f %f %f %f\n", GRAV*MASS_N*(0.01+0.05*i/10.0)*JTONEV, GRAV*MASS_N*(0.1+0.02*j/10.0)*JTONEV, 0.5+0.5*k/10.0, chisq/hist1.size());
-                printf("%f %f %f %f %f %f\n", thickCarb, thickBoron, thresh, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
+//                if(std::isnan(chisqNate)) {
+//                    hist1 = createHistQuantMultilayerEdESpline(thickOxide, thickBoron, thresh, events, randU01s, randDeathTimes);
+//                }
+                printf("%f %f %f %f %f %f\n", thickOxide, thickBoron, thresh, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
                 fflush(stdout);
             }
         }
@@ -290,8 +368,9 @@ int main(int argc, char** argv) {
 //      std::vector<weightedBin> hist1 = createHistQuant(0.31, 6.0, 24.0, events, randU01s, randDeathTimes); //quant frac zoom
 //      std::vector<weightedBin> hist1 = createHistQuantEdE(0.35, 0.0, events, randU01s, randDeathTimes); //quant frac zoom
 //      std::vector<weightedBin> hist1 = createHistQuantEdE(0.32, 0.0, events, randU01s, randDeathTimes); //quant EdE opt, no cutoff
-    /*std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(5, 20, 5, events, randU01s, randDeathTimes);
-    double chisq = calcChisqWgt(refHist, hist1);
+    //std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(5, 5, 5, events, randU01s, randDeathTimes);
+//    std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(3, 4.5, 6, events, randU01s, randDeathTimes);
+/*    double chisq = calcChisqWgt(refHist, hist1);
     double chisq2 = calcChisq(refHist, hist1);
     printf("%f %f\n\n", chisq/hist1.size(), chisq2/hist1.size());
     for(auto it = hist1.begin(); it < hist1.end(); it++) {
