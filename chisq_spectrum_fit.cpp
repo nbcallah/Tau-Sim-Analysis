@@ -129,7 +129,7 @@ void createSplineQuantOxide(double thickOxide, double thickBoron, gsl_spline **s
     xs[0] = 0.0;
     ys[0] = 0.0;
     for(int i = 1; i < 1001; i++) {
-        xs[i] = 0.0 + i*((50.0/JTONEV)/1000.0);
+        xs[i] = 0.0 + 50.0/JTONEV*(i/1000.0)*(i/1000.0);
         ys[i] = absorbProbQuantOxide(xs[i], thickOxide, thickBoron);
     }
     gsl_spline_init(*spline, xs, ys, 1001);
