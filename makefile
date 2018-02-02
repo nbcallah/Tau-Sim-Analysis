@@ -2,8 +2,8 @@ CC=gcc
 CXX=g++
 OPT=-O3
 CFLAGS=$(OPT)
-CPPFLAGS=$(OPT) -std=c++11 -fopenmp
-CPPLFLAGS=-fopenmp -lgsl -lgslcblas
+CPPFLAGS=$(OPT) -std=c++11 -fopenmp `root-config --cflags`
+CPPLFLAGS=-fopenmp -lgsl -lgslcblas `root-config --libs`
 
 all: chisq_spectrum_fit
 
