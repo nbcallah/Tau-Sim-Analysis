@@ -414,7 +414,7 @@ int main(int argc, char** argv) {
     
     refHistRoot->Sumw2();
     
-/*    int nBins = 20;
+    /*int nBins = 20;
 //    #pragma omp parallel for collapse(3)
     for(int i = 0; i < nBins+1; i++) {
         for(int j = 0; j < nBins+1; j++) {
@@ -517,7 +517,6 @@ int main(int argc, char** argv) {
     //std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(5, 5, 5, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(3, 4.5, 6, events, randU01s, randDeathTimes);
     std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(7.5, 4.5, 9, events, randU01s, randDeathTimes);
-//    std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(24, 6, 3.6, events, randU01s, randDeathTimes);
     double chisq2 = calcChisq(refHist, hist1);
     printf("%f\n\n", chisq2/hist1.size());
     for(auto it = hist1.begin(); it < hist1.end(); it++) {
