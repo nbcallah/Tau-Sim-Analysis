@@ -156,7 +156,8 @@ std::vector<weightedBin> createHistQuantMultilayerEdE(double thickOxide, double 
         if(events[i].energy*JTONEV < threshold) {
             continue;
         }
-        weight = events[i].energy*JTONEV/34.5;
+//        weight = events[i].energy*JTONEV/34.5;
+        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
             if(events[i].times[j] < 41) {
@@ -203,7 +204,8 @@ std::vector<weightedBin> createHistQuantMultilayerEdESpline(double thickOxide, d
         if(events[i].energy*JTONEV < threshold) {
             continue;
         }
-        weight = events[i].energy*JTONEV/34.5;
+//        weight = events[i].energy*JTONEV/34.5;
+        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
             if(events[i].times[j] < 41) {
@@ -246,7 +248,8 @@ TH1D* createHistQuantMultilayerEdESplineRoot(double thickOxide, double thickBoro
         if(events[i].energy*JTONEV < threshold) {
             continue;
         }
-        weight = events[i].energy*JTONEV/34.5;
+//        weight = events[i].energy*JTONEV/34.5;
+        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
             if(events[i].times[j] < 41) {
@@ -287,7 +290,8 @@ void fitTCQuantMultilayerEdESplineRoot(double thickOxide, double thickBoron, dou
         if(events[i].energy*JTONEV < threshold) {
             continue;
         }
-        weight = events[i].energy*JTONEV/34.5;
+//        weight = events[i].energy*JTONEV/34.5;
+        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
             if(events[i].times[j] < 41) {
@@ -414,12 +418,13 @@ int main(int argc, char** argv) {
     
     refHistRoot->Sumw2();
     
-    /*int nBins = 20;
+    int nBins = 20;
 //    #pragma omp parallel for collapse(3)
     for(int i = 0; i < nBins+1; i++) {
         for(int j = 0; j < nBins+1; j++) {
             for(int k = 0; k < nBins+1; k++) {
                 double thresh = 3.0 + 6.0*i/(double)nBins;
+                double thresh = 0.0;
                 double thickOxide = 0 + 30*j/(double)nBins;
                 double thickBoron = 0 + 30*k/(double)nBins;
                 if(thickOxide + thickBoron < 3) {
@@ -437,7 +442,7 @@ int main(int argc, char** argv) {
                 fflush(stdout);
             }
         }
-    }*/
+    }
     
     /*double fitOffsets[8] = {4, 42, 62, 82, 102, 122, 142, 162};
     double fitEnds[8] = {38, 58, 78, 98, 118, 138, 158, 178};
@@ -516,13 +521,15 @@ int main(int argc, char** argv) {
 //      std::vector<weightedBin> hist1 = createHistQuantEdE(0.32, 0.0, events, randU01s, randDeathTimes); //quant EdE opt, no cutoff
     //std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(5, 5, 5, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(3, 4.5, 6, events, randU01s, randDeathTimes);
-    std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(7.5, 4.5, 9, events, randU01s, randDeathTimes);
-    double chisq2 = calcChisq(refHist, hist1);
+//    std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(6.0, 4.5, 8.7, events, randU01s, randDeathTimes);
+//    std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(9.0, 6.0, 9.0, events, randU01s, randDeathTimes);
+//    std::vector<weightedBin> hist1 = createHistQuantMultilayerEdE(3.0, 6.0, 0.0, events, randU01s, randDeathTimes);
+    /*double chisq2 = calcChisq(refHist, hist1);
     printf("%f\n\n", chisq2/hist1.size());
     for(auto it = hist1.begin(); it < hist1.end(); it++) {
       printf("%f,", it->wgt);
     }
-    printf("\n");
+    printf("\n");*/
 
     delete[] randU01s;
     delete[] buf;
