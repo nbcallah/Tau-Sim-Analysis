@@ -3,3 +3,5 @@ datafiles/*
 *.o
 results/*
 professor/*
+minimal
+arrival_time_fixed_eff
