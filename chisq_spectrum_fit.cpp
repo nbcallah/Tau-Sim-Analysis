@@ -424,7 +424,7 @@ int main(int argc, char** argv) {
         for(int j = 0; j < nBins+1; j++) {
             for(int k = 0; k < nBins+1; k++) {
                 double thresh = 3.0 + 6.0*i/(double)nBins;
-                double thresh = 0.0;
+//                double thresh = 0.0;
                 double thickOxide = 0 + 30*j/(double)nBins;
                 double thickBoron = 0 + 30*k/(double)nBins;
                 if(thickOxide + thickBoron < 3) {
