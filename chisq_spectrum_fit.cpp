@@ -156,8 +156,8 @@ std::vector<weightedBin> createHistQuantMultilayerEdE(double thickOxide, double 
         if(events[i].energy*JTONEV < threshold) {
             continue;
         }
-//        weight = events[i].energy*JTONEV/34.5;
-        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
+        weight = events[i].energy*JTONEV/34.5;
+//        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
             if(events[i].times[j] < 41) {
@@ -204,8 +204,8 @@ std::vector<weightedBin> createHistQuantMultilayerEdESpline(double thickOxide, d
         if(events[i].energy*JTONEV < threshold) {
             continue;
         }
-//        weight = events[i].energy*JTONEV/34.5;
-        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
+        weight = events[i].energy*JTONEV/34.5;
+//        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
             if(events[i].times[j] < 41) {
@@ -248,8 +248,8 @@ TH1D* createHistQuantMultilayerEdESplineRoot(double thickOxide, double thickBoro
         if(events[i].energy*JTONEV < threshold) {
             continue;
         }
-//        weight = events[i].energy*JTONEV/34.5;
-        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
+        weight = events[i].energy*JTONEV/34.5;
+//        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
             if(events[i].times[j] < 41) {
@@ -290,8 +290,8 @@ void fitTCQuantMultilayerEdESplineRoot(double thickOxide, double thickBoron, dou
         if(events[i].energy*JTONEV < threshold) {
             continue;
         }
-//        weight = events[i].energy*JTONEV/34.5;
-        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
+        weight = events[i].energy*JTONEV/34.5;
+//        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
             if(events[i].times[j] < 41) {
@@ -418,15 +418,15 @@ int main(int argc, char** argv) {
     
     refHistRoot->Sumw2();
     
-    int nBins = 20;
+    int nBins = 40;
 //    #pragma omp parallel for collapse(3)
     for(int i = 0; i < nBins+1; i++) {
         for(int j = 0; j < nBins+1; j++) {
             for(int k = 0; k < nBins+1; k++) {
-                double thresh = 3.0 + 6.0*i/(double)nBins;
+                double thresh = 10.0 + 3.0*i/(double)nBins;
 //                double thresh = 0.0;
-                double thickOxide = 0 + 30*j/(double)nBins;
-                double thickBoron = 0 + 30*k/(double)nBins;
+                double thickOxide = 0 + 10*j/(double)nBins;
+                double thickBoron = 4 + 2*k/(double)nBins;
                 if(thickOxide + thickBoron < 3) {
                     continue;
                 }
