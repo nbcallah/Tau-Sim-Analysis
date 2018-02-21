@@ -49,9 +49,9 @@ std::vector<evt> readFile(const char* fName) {
         event.y = *((double *)(&buf[0] + sizeof(unsigned int) + 4*sizeof(double)));
         event.z = *((double *)(&buf[0] + sizeof(unsigned int) + 5*sizeof(double)));
         event.zoff = *((double *)(&buf[0] + sizeof(unsigned int) + 6*sizeof(double)));
-        event.nhit = *((double *)(&buf[0] + sizeof(unsigned int) + 7*sizeof(double)));
-        event.nhitBot = *((double *)(&buf[0] + sizeof(unsigned int) + 7*sizeof(double) + sizeof(int)));
-        event.nhitTop = *((double *)(&buf[0] + sizeof(unsigned int) + 7*sizeof(double) + 2*sizeof(int)));
+        event.nhit = *((int *)(&buf[0] + sizeof(unsigned int) + 7*sizeof(double)));
+        event.nhitBot = *((int *)(&buf[0] + sizeof(unsigned int) + 7*sizeof(double) + sizeof(int)));
+        event.nhitTop = *((int *)(&buf[0] + sizeof(unsigned int) + 7*sizeof(double) + 2*sizeof(int)));
         
         events.push_back(event);
     }
@@ -72,11 +72,12 @@ int main(int argc, char** argv) {
     std::vector<evt> data = readFile(argv[1]);
     std::vector<double> mcHist;
     
-    mcHist.resize(184, 0.0);
+    mcHist.resize(120, 0.0);
     
     for(auto it = data.begin(); it < data.end(); it++) {
-        double time = floor(it->time) - 41;
-        if(time < 0 || time > 183) {
+        double time = floor(it->time) - 220;
+//        printf("%f\n", time);
+        if(time < 0 || time > 119) {
             continue;
         }
         mcHist[time] += 1;
