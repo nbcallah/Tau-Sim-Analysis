@@ -276,6 +276,45 @@ TH1D* createHistQuantMultilayerEdESplineRoot(double thickOxide, double thickBoro
     return hist;
 }
 
+TH1D* createHistQuantMultilayerRobSplineRoot(double thickOxide, double thickBoron, double threshold, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
+    gsl_spline *spline;
+    gsl_interp_accel *acc;
+    createSplineQuantOxide(thickOxide, thickBoron, &spline, &acc);
+    char hName[256];
+    sprintf(hName, "MC%f%f%f", thickOxide, thickBoron, threshold);
+    TH1D* hist = new TH1D(hName, "Monte Carlo", 184, 0, 184);
+    for(unsigned long i = 0; i < events.size(); i++) {
+        double weight = 0.0;
+        if(events[i].energy*JTONEV < threshold) {
+            continue;
+        }
+        weight = pow(events[i].energy*JTONEV/34.5, 1.7/2.0);
+
+        for(int j = 0; j < NRECORDS; j++) {
+            if(events[i].times[j] < 41) {
+                continue;
+            }
+            if(events[i].times[j] - 41 > randDeathTimes[i]) {
+                break;
+            }
+            if(events[i].times[j] >= 225) {
+                break;
+            }
+//            if(absorbMultilayer(events[i].ePerp[j], randU01s[i*100 + j], thickOxide, thickBoron)) {
+            if(absorbSpline(events[i].ePerp[j], randU01s[i*2*NRECORDS + j], spline, acc)) {
+                if(int(events[i].times[j])-41 > 183) {
+                    printf("Boo!\n");
+                }
+                hist->Fill(events[i].times[j]-41, weight);
+                break;
+            }
+        }
+    }
+    gsl_spline_free(spline);
+    gsl_interp_accel_free(acc);
+    return hist;
+}
+
 void fitTCQuantMultilayerEdESplineRoot(double thickOxide, double thickBoron, double threshold, std::vector<evt>& events, double* randU01s, double* randDeathTimes, double* tcs, double* tcsErr) {
     double fitOffsets[8] = {4, 42, 62, 82, 102, 122, 142, 162};
     double fitEnds[8] = {38, 58, 78, 98, 118, 138, 158, 178};
@@ -418,15 +457,15 @@ int main(int argc, char** argv) {
     
     refHistRoot->Sumw2();
     
-    int nBins = 40;
+    int nBins = 10;
 //    #pragma omp parallel for collapse(3)
     for(int i = 0; i < nBins+1; i++) {
         for(int j = 0; j < nBins+1; j++) {
             for(int k = 0; k < nBins+1; k++) {
-                double thresh = 10.0 + 3.0*i/(double)nBins;
+                double thresh = 5.0 + 10.0*i/(double)nBins;
 //                double thresh = 0.0;
                 double thickOxide = 0 + 10*j/(double)nBins;
-                double thickBoron = 4 + 2*k/(double)nBins;
+                double thickBoron = 3 + 3*k/(double)nBins;
                 if(thickOxide + thickBoron < 3) {
                     continue;
                 }
@@ -435,7 +474,8 @@ int main(int argc, char** argv) {
 //                double chisqUnWgt = calcChisq(refHist, hist1);
 //                double chisqNate = calcChisqNate(refHist, hist1);
 //                printf("%f %f %f %f %f %f\n", thickOxide, thickBoron, thresh, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
-                TH1D* mcHistRoot = createHistQuantMultilayerEdESplineRoot(thickOxide, thickBoron, thresh, events, randU01s, randDeathTimes);
+//                TH1D* mcHistRoot = createHistQuantMultilayerEdESplineRoot(thickOxide, thickBoron, thresh, events, randU01s, randDeathTimes);
+                TH1D* mcHistRoot = createHistQuantMultilayerRobSplineRoot(thickOxide, thickBoron, thresh, events, randU01s, randDeathTimes);
                 double chisq = calcChisqRoot(refHistRoot, mcHistRoot);
                 printf("%f %f %f %f\n", thickOxide, thickBoron, thresh, chisq);
                 delete mcHistRoot;
