@@ -230,7 +230,52 @@ std::vector<weightedBin> createHistQuantMultilayerEdESpline(double thickOxide, d
             }
         }
     }
-    printf("%d\n", numCount);
+//    printf("%d\n", numCount);
+    gsl_spline_free(spline);
+    gsl_interp_accel_free(acc);
+    return hist;
+}
+
+std::vector<weightedBin> createHistQuantMultilayerEPowdESpline(double thickOxide, double thickBoron, double threshold, double power, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
+    gsl_spline *spline;
+    gsl_interp_accel *acc;
+    createSplineQuantOxide(thickOxide, thickBoron, &spline, &acc);
+    std::vector<weightedBin> hist;
+    weightedBin zero = {0.0, 0.0};
+    hist.resize(184, zero);
+    int numCount = 0;
+    for(unsigned long i = 0; i < events.size(); i++) {
+        double weight = 0.0;
+        if(events[i].energy*JTONEV < threshold) {
+            continue;
+        }
+        weight = pow(events[i].energy*JTONEV/34.5, power);
+//        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
+
+        for(int j = 0; j < NRECORDS; j++) {
+            if(events[i].times[j] < 41) {
+                continue;
+            }
+            if(events[i].times[j] - 41 > randDeathTimes[i]) {
+                break;
+            }
+            if(events[i].times[j] >= 225) {
+                break;
+            }
+//            if(absorbMultilayer(events[i].ePerp[j], randU01s[i*100 + j], thickOxide, thickBoron)) {
+            if(absorbSpline(events[i].ePerp[j], randU01s[i*2*NRECORDS + j], spline, acc)) {
+                if(int(events[i].times[j])-41 > 183) {
+                    printf("Boo!\n");
+                }
+                hist[int(events[i].times[j])-41].wgt += weight;
+                hist[int(events[i].times[j])-41].wgtSqr += weight*weight;
+                hist[int(events[i].times[j])-41].num += 1;
+                numCount += 1;
+                break;
+            }
+        }
+    }
+//    printf("%d\n", numCount);
     gsl_spline_free(spline);
     gsl_interp_accel_free(acc);
     return hist;
@@ -408,8 +453,29 @@ double calcChisqRoot(TH1D* refHist, TH1D* mcHist) {
     return refHist->Chi2Test(mcHist, "UW CHI2/NDF");
 }
 
+double calcChisqGagunashvili(std::vector<double>& hn, std::vector<weightedBin>& hm) {
+    if(hn.size() != hm.size()) {
+        return -1.0;
+    }
+    
+    double sumN = std::accumulate(hn.begin(), hn.end(), 0);
+    double sumM = std::accumulate(hm.begin(), hm.end(), 0, [](double sum, weightedBin bin)->double{return sum + bin.wgt;});
+    
+    double chisqSum = 0.0;
+    for(int i = 0; i < hn.size(); i++) {
+        double phat = (sumM*hm[i].wgt - sumN*hm[i].wgtSqr
+                + sqrt(pow(sumM*hm[i].wgt - sumN*hm[i].wgtSqr, 2) + 4*sumM*sumM*hm[i].wgtSqr*hn[i]))
+                                /
+                          (2*sumM*sumM);
+        chisqSum += pow(hn[i] - sumN*phat, 2)/(sumN*phat);
+        chisqSum += pow(hm[i].wgt - sumM*phat, 2)/(hm[i].wgtSqr);
+    }
+    
+    return chisqSum;
+}
+
 int main(int argc, char** argv) {
-    ROOT::EnableThreadSafety();
+//    ROOT::EnableThreadSafety();
     initxorshift();
     //buff_len = 4 + 3*8 + 4
     const size_t buff_len = 4 + 1*8 + 2*NRECORDS*4 + 4;
@@ -450,36 +516,60 @@ int main(int argc, char** argv) {
         randDeathTimes[i] = -877.7*log(nextU01());
     }
     
-    TH1D* refHistRoot = new TH1D("ref", "Reference", 184, 0, 184);
-    for(int i = 0; i < 184; i++) {
-        refHistRoot->SetBinContent(i+1, refHist[i]);
-    }
+//    TH1D* refHistRoot = new TH1D("ref", "Reference", 184, 0, 184);
+//    for(int i = 0; i < 184; i++) {
+//        refHistRoot->SetBinContent(i+1, refHist[i]);
+//    }
+//    refHistRoot->Sumw2();
     
-    refHistRoot->Sumw2();
-    
-    int nBins = 10;
+//    int nBins = 28;
 //    #pragma omp parallel for collapse(3)
+//    for(int i = 0; i < nBins+1; i++) {
+//        for(int j = 0; j < nBins+1; j++) {
+//            for(int k = 0; k < nBins+1; k++) {
+//                double thresh = 10.0 + 10.0*i/(double)nBins;
+////                double thresh = 0.0;
+//                double thickOxide = 0 + 12*j/(double)nBins;
+//                double thickBoron = 3 + 4*k/(double)nBins;
+//                if(thickOxide + thickBoron < 3) {
+//                    continue;
+//                }
+////                std::vector<weightedBin> hist1 = createHistQuantMultilayerEdESpline(thickOxide, thickBoron, thresh, events, randU01s, randDeathTimes);
+////                double chisqWgt = calcChisqWgt(refHist, hist1);
+////                double chisqUnWgt = calcChisq(refHist, hist1);
+////                double chisqNate = calcChisqNate(refHist, hist1);
+////                printf("%f %f %f %f %f %f\n", thickOxide, thickBoron, thresh, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
+////                TH1D* mcHistRoot = createHistQuantMultilayerEdESplineRoot(thickOxide, thickBoron, thresh, events, randU01s, randDeathTimes);
+////                TH1D* mcHistRoot = createHistQuantMultilayerRobSplineRoot(thickOxide, thickBoron, thresh, events, randU01s, randDeathTimes);
+////                double chisq = calcChisqRoot(refHistRoot, mcHistRoot);
+//                
+//                std::vector<weightedBin> hist1 = createHistQuantMultilayerEdESpline(thickOxide, thickBoron, thresh, events, randU01s, randDeathTimes);
+//                double chisq = calcChisqGagunashvili(refHist, hist1)/(hist1.size()-1);
+//                printf("%f %f %f %f\n", thickOxide, thickBoron, thresh, chisq);
+////                delete mcHistRoot;
+//                fflush(stdout);
+//            }
+//        }
+//    }
+    
+    int nBins = 28;
+    #pragma omp parallel for collapse(4)
     for(int i = 0; i < nBins+1; i++) {
         for(int j = 0; j < nBins+1; j++) {
             for(int k = 0; k < nBins+1; k++) {
-                double thresh = 5.0 + 10.0*i/(double)nBins;
-//                double thresh = 0.0;
-                double thickOxide = 0 + 10*j/(double)nBins;
-                double thickBoron = 3 + 3*k/(double)nBins;
-                if(thickOxide + thickBoron < 3) {
-                    continue;
+                for(int l = 0; l < nBins; l++) {
+                    double thresh = 5.0 + 20.0*i/(double)nBins;
+                    double thickOxide = 0 + 15*j/(double)nBins;
+                    double thickBoron = 3 + 5*k/(double)nBins;
+                    double power = .5 + 2*l/(double)nBins;
+                    if(thickOxide + thickBoron < 3) {
+                        continue;
+                    }
+                    std::vector<weightedBin> hist1 = createHistQuantMultilayerEPowdESpline(thickOxide, thickBoron, thresh, power, events, randU01s, randDeathTimes);
+                    double chisq = calcChisqGagunashvili(refHist, hist1)/(hist1.size()-1);
+                    printf("%f %f %f %f %f\n", thickOxide, thickBoron, thresh, power, chisq);
+                    fflush(stdout);
                 }
-//                std::vector<weightedBin> hist1 = createHistQuantMultilayerEdESpline(thickOxide, thickBoron, thresh, events, randU01s, randDeathTimes);
-//                double chisqWgt = calcChisqWgt(refHist, hist1);
-//                double chisqUnWgt = calcChisq(refHist, hist1);
-//                double chisqNate = calcChisqNate(refHist, hist1);
-//                printf("%f %f %f %f %f %f\n", thickOxide, thickBoron, thresh, chisqWgt/hist1.size(), chisqUnWgt/hist1.size(), chisqNate/hist1.size());
-//                TH1D* mcHistRoot = createHistQuantMultilayerEdESplineRoot(thickOxide, thickBoron, thresh, events, randU01s, randDeathTimes);
-                TH1D* mcHistRoot = createHistQuantMultilayerRobSplineRoot(thickOxide, thickBoron, thresh, events, randU01s, randDeathTimes);
-                double chisq = calcChisqRoot(refHistRoot, mcHistRoot);
-                printf("%f %f %f %f\n", thickOxide, thickBoron, thresh, chisq);
-                delete mcHistRoot;
-                fflush(stdout);
             }
         }
     }
@@ -574,7 +664,7 @@ int main(int argc, char** argv) {
     delete[] randU01s;
     delete[] buf;
     
-    delete refHistRoot;
+//    delete refHistRoot;
 
     return 0;
 }
