@@ -2,6 +2,10 @@ chisq_spectrum_fit
 datafiles/*
 *.o
 results/*
+!results/chisq_contours/
+results/chisq_countours/*
+!results/chisq_contours/plotContours.py
 professor/*
 minimal
 arrival_time_fixed_eff
+*.txt
