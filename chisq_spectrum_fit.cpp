@@ -504,7 +504,7 @@ int main(int argc, char** argv) {
     }
     binfile.close();
     
-    printf("Read %lu Events!\n", events.size());
+    //printf("Read %lu Events!\n", events.size());
     
     double* randU01s = new double[events.size()*2*NRECORDS];
     double* randDeathTimes = new double[events.size()];
@@ -552,16 +552,16 @@ int main(int argc, char** argv) {
 //        }
 //    }
     
-    int nBins = 28;
+    int nBins = 39;
     #pragma omp parallel for collapse(4)
     for(int i = 0; i < nBins+1; i++) {
         for(int j = 0; j < nBins+1; j++) {
             for(int k = 0; k < nBins+1; k++) {
                 for(int l = 0; l < nBins; l++) {
-                    double thresh = 5.0 + 20.0*i/(double)nBins;
+                    double thresh = 6.0 + 10.0*i/(double)nBins;
                     double thickOxide = 0 + 15*j/(double)nBins;
-                    double thickBoron = 3 + 5*k/(double)nBins;
-                    double power = .5 + 2*l/(double)nBins;
+                    double thickBoron = 4 + 3*k/(double)nBins;
+                    double power = .5 + 1.5*l/(double)nBins;
                     if(thickOxide + thickBoron < 3) {
                         continue;
                     }
