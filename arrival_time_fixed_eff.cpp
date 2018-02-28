@@ -5,6 +5,7 @@
 #include <numeric>
 #include <cstring>
 #include <cmath>
+#include <getopt.h>
 
 extern "C" {
     #include "xorshift.h"
@@ -14,6 +15,7 @@ std::vector<double> refHist = {276.0,2147.0,6357.0,6724.0,6445.0,6515.0,6303.0,5
 
 typedef struct evt {
     double energy;
+    double theta;
     double time;
     double eperp;
     double x;
@@ -28,7 +30,7 @@ typedef struct evt {
 std::vector<evt> readFile(const char* fName) {
     std::vector<evt> events;
     
-    const size_t buff_len = 4 + 7*8 + 3*4 + 4;
+    const size_t buff_len = 4 + 8*8 + 3*4 + 4;
     char* buf = new char[buff_len];
     std::ifstream binfile(fName, std::ios::in | std::ios::binary);
     if(!binfile.is_open()) {
@@ -42,17 +44,21 @@ std::vector<evt> readFile(const char* fName) {
         if(binfile.eof()) { //Breaks on last read of file (i.e. when 0 bytes are read and EOF bit is set)
             break;
         }
+        if(*((unsigned int *)&buf[0]) != buff_len - 8) {
+			fprintf(stderr, "Error! Wrong binary format!\n");
+			exit(2);
+		}
         event.energy = *((double *)(&buf[0] + sizeof(unsigned int)));
-        event.time = *((double *)(&buf[0] + sizeof(unsigned int) + sizeof(double)));
-        event.eperp = *((double *)(&buf[0] + sizeof(unsigned int) + 2*sizeof(double)));
-        event.x = *((double *)(&buf[0] + sizeof(unsigned int) + 3*sizeof(double)));
-        event.y = *((double *)(&buf[0] + sizeof(unsigned int) + 4*sizeof(double)));
-        event.z = *((double *)(&buf[0] + sizeof(unsigned int) + 5*sizeof(double)));
-        event.zoff = *((double *)(&buf[0] + sizeof(unsigned int) + 6*sizeof(double)));
-        event.nhit = *((int *)(&buf[0] + sizeof(unsigned int) + 7*sizeof(double)));
+        event.theta = *((double *)(&buf[0] + sizeof(unsigned int) + sizeof(double)));
+        event.time = *((double *)(&buf[0] + sizeof(unsigned int) + 2*sizeof(double)));
+        event.eperp = *((double *)(&buf[0] + sizeof(unsigned int) + 3*sizeof(double)));
+        event.x = *((double *)(&buf[0] + sizeof(unsigned int) + 4*sizeof(double)));
+        event.y = *((double *)(&buf[0] + sizeof(unsigned int) + 5*sizeof(double)));
+        event.z = *((double *)(&buf[0] + sizeof(unsigned int) + 6*sizeof(double)));
+        event.zoff = *((double *)(&buf[0] + sizeof(unsigned int) + 7*sizeof(double)));
+        event.nhit = *((int *)(&buf[0] + sizeof(unsigned int) + 8*sizeof(double)));
         event.nhitBot = *((int *)(&buf[0] + sizeof(unsigned int) + 7*sizeof(double) + sizeof(int)));
-        event.nhitTop = *((int *)(&buf[0] + sizeof(unsigned int) + 7*sizeof(double) + 2*sizeof(int)));
-        
+        event.nhitTop = *((int *)(&buf[0] + sizeof(unsigned int) + 7*sizeof(double) + 2*sizeof(int)));        
         events.push_back(event);
     }
     binfile.close();
@@ -64,22 +70,70 @@ std::vector<evt> readFile(const char* fName) {
 }
 
 int main(int argc, char** argv) {
-    if(argc != 2) {
-        printf("Error! Usage: ./minimal fname\n");
-        return 1;
+    int c;
+    
+    char fName[256];
+    double begin = -1;
+    double end = -1;
+    int nbins = -1;
+
+    while (1) {
+        static struct option long_options[] = {
+            {"file", required_argument, 0, 'f'},
+            {"begin", required_argument, 0, 'b'},
+            {"end", required_argument, 0, 'e'},
+            {"nbins", required_argument, 0, 'n'},
+            {0, 0, 0, 0},
+        };
+        /* getopt_long stores the option index here. */
+        int option_index = 0;
+
+        c = getopt_long(argc, argv, "f:b:e:n:", long_options, &option_index);
+
+        /* Detect the end of the options. */
+        if(c == -1) {
+            break;
+        }
+
+        switch(c) {
+            case 'f':
+                strncpy(fName, optarg, 256-1);
+                fName[256-1] = '\0';
+                break;
+            case 'b':
+                begin = atof(optarg);
+                break;
+            case 'e':
+                end = atof(optarg);
+                break;
+            case 'n':
+                nbins = atoi(optarg);
+                break;
+            case '?':
+                /* getopt_long already printed an error message. */
+                break;
+            default:
+                exit(1);
+        }
+    }
+    
+    if(fName == NULL || begin == -1 || end == -1 || nbins == -1) {
+        fprintf(stderr, "Error! Usage: ./arrival_time_fixed_eff --file=fName --begin=start_t --end=end_t --nbins=N\n");
+        exit(1);
     }
 
-    std::vector<evt> data = readFile(argv[1]);
+    std::vector<evt> data = readFile(fName);
     std::vector<double> mcHist;
     
-    mcHist.resize(120, 0.0);
+    mcHist.resize(nbins, 0.0);
     
     for(auto it = data.begin(); it < data.end(); it++) {
-        double time = floor(it->time) - 220;
+        double time = it->time;
 //        printf("%f\n", time);
-        if(time < 0 || time > 119) {
+        if(time < begin || time >= end) {
             continue;
         }
+        int bin = floor(nbins*(time - begin)/(end-begin));
         mcHist[time] += 1;
     }
     
