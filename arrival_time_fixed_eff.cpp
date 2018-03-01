@@ -73,6 +73,7 @@ int main(int argc, char** argv) {
     int c;
     
     char fName[256];
+    fName[0] = '\0';
     double begin = -1;
     double end = -1;
     int nbins = -1;
@@ -117,10 +118,12 @@ int main(int argc, char** argv) {
         }
     }
     
-    if(fName == NULL || begin == -1 || end == -1 || nbins == -1) {
+    if(fName[0] == '\0' || begin == -1 || end == -1 || nbins == -1) {
         fprintf(stderr, "Error! Usage: ./arrival_time_fixed_eff --file=fName --begin=start_t --end=end_t --nbins=N\n");
         exit(1);
     }
+    
+//    printf("%f %f %d\n", begin, end, nbins);
 
     std::vector<evt> data = readFile(fName);
     std::vector<double> mcHist;
@@ -134,7 +137,8 @@ int main(int argc, char** argv) {
             continue;
         }
         int bin = floor(nbins*(time - begin)/(end-begin));
-        mcHist[time] += 1;
+//        printf("%d\n", bin);
+        mcHist[bin] += 1;
     }
     
     for(auto it = mcHist.begin(); it < mcHist.end(); it++) {
