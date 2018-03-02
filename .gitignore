@@ -1,5 +1,8 @@
 chisq_spectrum_fit
 datafiles/*
+!datafiles/theta_stitching/
+datafiles/theta_stitching/*
+!datafiles/theta_stitching/stitcher.cpp
 *.o
 results/*
 !results/chisq_contours/
