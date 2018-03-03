@@ -94,8 +94,8 @@ std::vector<std::complex<double>> m(std::complex<double> kn, std::complex<double
 }
 
 double absorbProbQuantOxide(double ePerp, double thickOxide, double thickBoron) {
-    const double voxide = (2*M_PI*(HBAR*HBAR)/MASS_N)*ABORON*NBORONB2O3 + (2*M_PI*(HBAR*HBAR)/MASS_N)*AOXYGEN*NOXYGENB2O3;
-    const double woxide = (HBAR/2)*NBORONB2O3*SIGMABORON + (HBAR/2)*NOXYGENB2O3*SIGMAOXYGEN;
+//    const double voxide = (2*M_PI*(HBAR*HBAR)/MASS_N)*ABORON*NBORONB2O3 + (2*M_PI*(HBAR*HBAR)/MASS_N)*AOXYGEN*NOXYGENB2O3;
+//    const double woxide = (HBAR/2)*NBORONB2O3*SIGMABORON + (HBAR/2)*NOXYGENB2O3*SIGMAOXYGEN;
     const double vboron = (2*M_PI*(HBAR*HBAR)/MASS_N)*ABORON*NBORON;
     const double wboron = (HBAR/2)*NBORON*SIGMABORON;
     const double vzns = (2*M_PI*(HBAR*HBAR)/MASS_N)*AZINC*NZINC + (2*M_PI*(HBAR*HBAR)/MASS_N)*ASULFUR*NSULFUR;
@@ -103,11 +103,12 @@ double absorbProbQuantOxide(double ePerp, double thickOxide, double thickBoron) 
     
     std::vector<std::complex<double>> pots = {std::complex<double>(0, 0),
 //                                              std::complex<double>(vcarbon, -wcarbon),
-                                              std::complex<double>(voxide, -woxide),
+//                                              std::complex<double>(voxide, -woxide),
                                               std::complex<double>(vboron, -wboron),
                                               std::complex<double>(vzns, -wzns)};
     std::vector<std::complex<double>> mbar = {std::complex<double>(1,0), std::complex<double>(0,0), std::complex<double>(0,0), std::complex<double>(1,0)};
-    std::vector<double> zs = {0.0, thickOxide*1e-9, thickOxide*1e-9 + thickBoron*1e-9, 10000e-9};
+//    std::vector<double> zs = {0.0, thickOxide*1e-9, thickOxide*1e-9 + thickBoron*1e-9, 10000e-9};
+    std::vector<double> zs = {0.0, thickBoron*1e-9, 10000e-9};
     
     for(int i = pots.size()-1; i > 0; i--) {
         mbar = matmul(mbar, m(k(ePerp, pots[i]), k(ePerp, pots[i-1]), zs[i-1]));
