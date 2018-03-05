@@ -326,12 +326,12 @@ int main(int argc, char** argv) {
 //    std::vector<weightedBin> hist1 = createHistQuantMultilayerEPowdESpline(0.0, 4.6, 11.6, 1.1, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.6, 10.0, 1.1, 0.1, events, randU01s, randDeathTimes);
     std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.60606, 7.212121, 1.227273, 0.181818, events, randU01s, randDeathTimes);
-//    double chisq2 = calcChisqGagunashvili(refHist, hist1);
-//    printf("%f\n\n", chisq2/(hist1.size()-1));
-//    for(auto it = hist1.begin(); it < hist1.end(); it++) {
-//      printf("%f,", it->wgt);
-//    }
-//    printf("\n");
+    double chisq2 = calcChisqGagunashvili(refHist, hist1);
+    printf("%f\n\n", chisq2/(hist1.size()-1));
+    for(auto it = hist1.begin(); it < hist1.end(); it++) {
+      printf("%f,", it->wgt);
+    }
+    printf("\n");
 
     delete[] randU01s;
     delete[] buf;
