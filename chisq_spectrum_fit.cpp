@@ -304,16 +304,16 @@ int main(int argc, char** argv) {
         randDeathTimes[i] = -877.7*log(nextU01());
     }
     
-    int nBins = 14;
+    int nBins = 33;
     #pragma omp parallel for collapse(4)
     for(int i = 0; i < nBins+1; i++) {
         for(int j = 0; j < nBins+1; j++) {
             for(int k = 0; k < nBins+1; k++) {
-                for(int l = 0; l < nBins; l++) {
+                for(int l = 0; l < nBins+1; l++) {
                     double thresh = 0.0 + 14.0*i/(double)nBins;
-                    double thickBoron = 4 + 3*k/(double)nBins;
+                    double thickBoron = 4 + 2*k/(double)nBins;
                     double power = .5 + 1.5*l/(double)nBins;
-                    double cosPower = 0.0 + 1.0*j/(double)nBins;
+                    double cosPower = 0.0 + 0.5*j/(double)nBins;
                     std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(thickBoron, thresh, power, cosPower, events, randU01s, randDeathTimes);
                     double chisq = calcChisqGagunashvili(refHist, hist1)/(hist1.size()-1);
                     printf("%f %f %f %f %f\n", cosPower, thickBoron, thresh, power, chisq);
@@ -325,6 +325,7 @@ int main(int argc, char** argv) {
 
 //    std::vector<weightedBin> hist1 = createHistQuantMultilayerEPowdESpline(0.0, 4.6, 11.6, 1.1, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.6, 10.0, 1.1, 0.1, events, randU01s, randDeathTimes);
+    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.60606, 7.212121, 1.227273, 0.181818, events, randU01s, randDeathTimes);
 //    double chisq2 = calcChisqGagunashvili(refHist, hist1);
 //    printf("%f\n\n", chisq2/(hist1.size()-1));
 //    for(auto it = hist1.begin(); it < hist1.end(); it++) {
