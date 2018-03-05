@@ -304,7 +304,7 @@ int main(int argc, char** argv) {
         randDeathTimes[i] = -877.7*log(nextU01());
     }
     
-    int nBins = 33;
+    /*int nBins = 33;
     #pragma omp parallel for collapse(4)
     for(int i = 0; i < nBins+1; i++) {
         for(int j = 0; j < nBins+1; j++) {
@@ -321,7 +321,7 @@ int main(int argc, char** argv) {
                 }
             }
         }
-    }    
+    }*/
 
 //    std::vector<weightedBin> hist1 = createHistQuantMultilayerEPowdESpline(0.0, 4.6, 11.6, 1.1, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.6, 10.0, 1.1, 0.1, events, randU01s, randDeathTimes);
