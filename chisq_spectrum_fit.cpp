@@ -16,6 +16,13 @@ extern "C" {
     #include "xorshift.h"
 }
 
+#define START (300+20+41)
+#define END (300+20+41+184)
+//#define START 0
+//#define END 1000
+//#define START 41
+//#define END 225
+
 #define NRECORDS 50
 
 #define MASS_N 1.674927471e-27
@@ -192,45 +199,103 @@ std::vector<weightedBin> createHistQuantMultilayerEPowdESpline(double thickOxide
 }
 
 std::vector<weightedBin> createHistQuantNoOxEPowdEThetaSpline(double thickBoron, double threshold, double power, double cosPower, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
+    double sum = 0;
+    double sumWgt = 0;
     gsl_spline *spline;
     gsl_interp_accel *acc;
     createSplineQuantOxide(0.0, thickBoron, &spline, &acc);
     std::vector<weightedBin> hist;
     weightedBin zero = {0.0, 0.0};
-    hist.resize(184, zero);
+    hist.resize((int)ceil(END-START), zero);
     int numCount = 0;
     for(unsigned long i = 0; i < events.size(); i++) {
         double weight = 0.0;
         if(events[i].energy*JTONEV < threshold) {
             continue;
         }
+//        if(events[i].energy > (0.3444*GRAV*MASS_N)) {
+//            continue;
+//        }
         weight = pow(events[i].energy*JTONEV/34.5, power)*pow(cos(events[i].theta), cosPower);
 //        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
-            if(events[i].times[j] < 41) {
+            if(events[i].times[j] < START) {
                 continue;
             }
-            if(events[i].times[j] - 41 > randDeathTimes[i]) {
+            if(events[i].times[j] - START > randDeathTimes[i]) {
                 break;
             }
-            if(events[i].times[j] >= 225) {
+            if(events[i].times[j] >= END) {
                 break;
             }
 //            if(absorbMultilayer(events[i].ePerp[j], randU01s[i*100 + j], thickOxide, thickBoron)) {
             if(absorbSpline(events[i].ePerp[j], randU01s[i*2*NRECORDS + j], spline, acc)) {
-                if(int(events[i].times[j])-41 > 183) {
+                sum += (j+1)*weight;
+                sumWgt += weight;
+                if(int(events[i].times[j])-START > (END-START)) {
                     printf("Boo!\n");
                 }
-                hist[int(events[i].times[j])-41].wgt += weight;
-                hist[int(events[i].times[j])-41].wgtSqr += weight*weight;
-                hist[int(events[i].times[j])-41].num += 1;
+                hist[int(events[i].times[j])-START].wgt += weight;
+                hist[int(events[i].times[j])-START].wgtSqr += weight*weight;
+                hist[int(events[i].times[j])-START].num += 1;
                 numCount += 1;
                 break;
             }
         }
     }
 //    printf("%d\n", numCount);
+    printf("%f\n", sum/sumWgt);
+    gsl_spline_free(spline);
+    gsl_interp_accel_free(acc);
+    return hist;
+}
+
+std::vector<weightedBin> createHistQuantNoOxEPowdEThetaSpline_C(double thickBoron, double threshold, double power, double cosPower, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
+    double sum = 0;
+    double sumWgt = 0;
+    gsl_spline *spline;
+    gsl_interp_accel *acc;
+    createSplineQuantOxide(0.0, thickBoron, &spline, &acc);
+    std::vector<weightedBin> hist;
+    weightedBin zero = {0.0, 0.0};
+    hist.resize((int)ceil(END-START), zero);
+    int numCount = 0;
+    for(unsigned long i = 0; i < events.size(); i++) {
+        double weight = 0.0;
+        if(events[i].energy*JTONEV < threshold) {
+            continue;
+        }
+        weight = pow(events[i].energy/(0.3444*GRAV*MASS_N), power)*pow(cos(events[i].theta), cosPower);
+//        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
+
+        for(int j = 0; j < NRECORDS; j++) {
+            if(events[i].times[j] < START) {
+                continue;
+            }
+            if(events[i].times[j] - START > randDeathTimes[i]) {
+                break;
+            }
+            if(events[i].times[j] >= END) {
+                break;
+            }
+//            if(absorbMultilayer(events[i].ePerp[j], randU01s[i*100 + j], thickOxide, thickBoron)) {
+            if(absorbSpline(events[i].ePerp[j], randU01s[i*2*NRECORDS + j], spline, acc)) {
+                sum += (j+1)*weight;
+                sumWgt += weight;
+                if(int(events[i].times[j])-START > (END-START)) {
+                    printf("Boo!\n");
+                }
+                hist[int(events[i].times[j])-START].wgt += weight;
+                hist[int(events[i].times[j])-START].wgtSqr += weight*weight;
+                hist[int(events[i].times[j])-START].num += 1;
+                numCount += 1;
+                break;
+            }
+        }
+    }
+//    printf("%d\n", numCount);
+    printf("%f\n", sum/sumWgt);
     gsl_spline_free(spline);
     gsl_interp_accel_free(acc);
     return hist;
@@ -325,11 +390,14 @@ int main(int argc, char** argv) {
 
 //    std::vector<weightedBin> hist1 = createHistQuantMultilayerEPowdESpline(0.0, 4.6, 11.6, 1.1, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.6, 10.0, 1.1, 0.1, events, randU01s, randDeathTimes);
-    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.60606, 7.212121, 1.227273, 0.181818, events, randU01s, randDeathTimes);
+//    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.60606, 7.212121, 1.227273, 0.181818, events, randU01s, randDeathTimes);
+//    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(4.60606, 7.212121, 1.227273, 0.181818, events, randU01s, randDeathTimes);
+    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(8.0, 6.0, 0.9, 0.5, events, randU01s, randDeathTimes);
     double chisq2 = calcChisqGagunashvili(refHist, hist1);
     printf("%f\n\n", chisq2/(hist1.size()-1));
-    for(auto it = hist1.begin(); it < hist1.end(); it++) {
-      printf("%f,", it->wgt);
+//    for(auto it = hist1.begin(); it < hist1.end(); it++) {
+    for(int i = 0; i < hist1.size(); i++) {
+      printf("%f,", hist1[i].wgt);
     }
     printf("\n");
 
