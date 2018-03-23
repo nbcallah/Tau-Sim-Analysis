@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/python3
 
 import sys
 import numpy as np
@@ -35,9 +35,15 @@ dt = np.dtype([('rLenFront', np.uint32, (1)),
 
 data = np.fromfile(fname, dtype=dt)
 
-cut = np.bitwise_and(data['time'] < data['deathTime'], data['time'] < 160)
+cut = np.bitwise_and(data['time'] < data['deathTime'], data['time'] > 0)
 
 dataCut = data[cut]
+
+print(len(dataCut))
+
+plt.clf()
+plt.hist(dataCut['time'], bins=np.arange(0,1700,1))
+plt.show()
 
 #zetas = []
 #for row in dataCut:
@@ -50,4 +56,4 @@ dataCut = data[cut]
 
 print("Read "+str(len(data))+" Evts")
 
-print(len(dataCut), np.sum(dataCut['time']*(np.cos(dataCut['theta'])**0.2))/np.sum(np.cos(dataCut['theta'])**0.2))
+print(len(dataCut), np.mean(dataCut['time']))

@@ -252,8 +252,6 @@ std::vector<weightedBin> createHistQuantNoOxEPowdEThetaSpline(double thickBoron,
 }
 
 std::vector<weightedBin> createHistQuantNoOxEPowdEThetaSpline_C(double thickBoron, double threshold, double power, double cosPower, std::vector<evt>& events, double* randU01s, double* randDeathTimes) {
-    double sum = 0;
-    double sumWgt = 0;
     gsl_spline *spline;
     gsl_interp_accel *acc;
     createSplineQuantOxide(0.0, thickBoron, &spline, &acc);
@@ -266,7 +264,7 @@ std::vector<weightedBin> createHistQuantNoOxEPowdEThetaSpline_C(double thickBoro
         if(events[i].energy*JTONEV < threshold) {
             continue;
         }
-        weight = pow(events[i].energy/(0.3444*GRAV*MASS_N), power)*pow(cos(events[i].theta), cosPower);
+        weight = pow(events[i].energy/(0.3444*GRAV*MASS_N), power-1)*pow(cos(events[i].theta), cosPower);
 //        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
@@ -281,8 +279,6 @@ std::vector<weightedBin> createHistQuantNoOxEPowdEThetaSpline_C(double thickBoro
             }
 //            if(absorbMultilayer(events[i].ePerp[j], randU01s[i*100 + j], thickOxide, thickBoron)) {
             if(absorbSpline(events[i].ePerp[j], randU01s[i*2*NRECORDS + j], spline, acc)) {
-                sum += (j+1)*weight;
-                sumWgt += weight;
                 if(int(events[i].times[j])-START > (END-START)) {
                     printf("Boo!\n");
                 }
@@ -294,8 +290,6 @@ std::vector<weightedBin> createHistQuantNoOxEPowdEThetaSpline_C(double thickBoro
             }
         }
     }
-//    printf("%d\n", numCount);
-    printf("%f\n", sum/sumWgt);
     gsl_spline_free(spline);
     gsl_interp_accel_free(acc);
     return hist;
@@ -357,7 +351,7 @@ int main(int argc, char** argv) {
     }
     binfile.close();
     
-    //printf("Read %lu Events!\n", events.size());
+    printf("Read %lu Events!\n", events.size());
     
     double* randU01s = new double[events.size()*2*NRECORDS];
     double* randDeathTimes = new double[events.size()];
@@ -377,9 +371,10 @@ int main(int argc, char** argv) {
                 for(int l = 0; l < nBins+1; l++) {
                     double thresh = 0.0 + 14.0*i/(double)nBins;
                     double thickBoron = 4 + 2*k/(double)nBins;
-                    double power = .5 + 1.5*l/(double)nBins;
+                    double power = .75 + 1.75*l/(double)nBins;
                     double cosPower = 0.0 + 0.5*j/(double)nBins;
-                    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(thickBoron, thresh, power, cosPower, events, randU01s, randDeathTimes);
+//                    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(thickBoron, thresh, power, cosPower, events, randU01s, randDeathTimes);
+                    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(thickBoron, thresh, power, cosPower, events, randU01s, randDeathTimes);
                     double chisq = calcChisqGagunashvili(refHist, hist1)/(hist1.size()-1);
                     printf("%f %f %f %f %f\n", cosPower, thickBoron, thresh, power, chisq);
                     fflush(stdout);
@@ -387,19 +382,38 @@ int main(int argc, char** argv) {
             }
         }
     }*/
+    
+    int nBins = 24;
+    #pragma omp parallel for collapse(4)
+    for(int i = 0; i < nBins+1; i++) {
+        for(int j = 0; j < nBins+1; j++) {
+            for(int k = 0; k < nBins+1; k++) {
+                for(int l = 0; l < nBins+1; l++) {
+                    double thresh = 5.5 + 1.5*i/(double)nBins;
+                    double thickBoron = 4.4 + 0.4*k/(double)nBins;
+                    double power = 1.0 + 0.4*l/(double)nBins;
+                    double cosPower = 0.1 + 0.2*j/(double)nBins;
+//                    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(thickBoron, thresh, power, cosPower, events, randU01s, randDeathTimes);
+                    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(thickBoron, thresh, power, cosPower, events, randU01s, randDeathTimes);
+                    double chisq = calcChisqGagunashvili(refHist, hist1)/(hist1.size()-1);
+                    printf("%.15f %.15f %.15f %.15f %.15f\n", cosPower, thickBoron, thresh, power, chisq);
+                    fflush(stdout);
+                }
+            }
+        }
+    }
 
 //    std::vector<weightedBin> hist1 = createHistQuantMultilayerEPowdESpline(0.0, 4.6, 11.6, 1.1, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.6, 10.0, 1.1, 0.1, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.60606, 7.212121, 1.227273, 0.181818, events, randU01s, randDeathTimes);
-//    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(4.60606, 7.212121, 1.227273, 0.181818, events, randU01s, randDeathTimes);
-    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(8.0, 6.0, 0.9, 0.5, events, randU01s, randDeathTimes);
-    double chisq2 = calcChisqGagunashvili(refHist, hist1);
-    printf("%f\n\n", chisq2/(hist1.size()-1));
-//    for(auto it = hist1.begin(); it < hist1.end(); it++) {
-    for(int i = 0; i < hist1.size(); i++) {
-      printf("%f,", hist1[i].wgt);
-    }
-    printf("\n");
+//    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(4.60606, 7.212121, 1.227273-1, 0.181818, events, randU01s, randDeathTimes);
+//    double chisq2 = calcChisqGagunashvili(refHist, hist1);
+//    printf("%f\n\n", chisq2/(hist1.size()-1));
+////    for(auto it = hist1.begin(); it < hist1.end(); it++) {
+//    for(int i = 0; i < hist1.size(); i++) {
+//      printf("%f,", hist1[i].wgt);
+//    }
+//    printf("\n");
 
     delete[] randU01s;
     delete[] buf;
