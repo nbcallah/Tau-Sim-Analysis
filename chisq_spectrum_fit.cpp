@@ -383,7 +383,7 @@ int main(int argc, char** argv) {
         }
     }*/
     
-    int nBins = 24;
+    /*int nBins = 24;
     #pragma omp parallel for collapse(4)
     for(int i = 0; i < nBins+1; i++) {
         for(int j = 0; j < nBins+1; j++) {
@@ -399,6 +399,27 @@ int main(int argc, char** argv) {
                     printf("%.15f %.15f %.15f %.15f %.15f\n", cosPower, thickBoron, thresh, power, chisq);
                     fflush(stdout);
                 }
+            }
+        }
+    }*/
+    
+    int nBins = 100;
+//    std::vector<double> param;
+    std::vector<double> minParam = {4.66666667, 5.875, 1.216666667, 0.25};
+    std::vector<double> rangeParam = {0.5, 5.875, 0.5, 0.25};
+    std::vector<std::vector<int>> pairs = {{0,1},{0,2},{0,3},{1,2},{1,3},{2,3}};
+    for(auto it = pairs.begin(); it < pairs.end(); it++) {
+        #pragma omp parallel for collapse(2)
+        for(int x = 0; x <= nBins; x++) {
+            for(int y = 0; y <= nBins; y++) {
+                std::vector<double> param;
+                param = minParam;
+                param[(*it)[0]] = param[(*it)[0]] - rangeParam[(*it)[0]] + 2*rangeParam[(*it)[0]]*(x/(double)nBins);
+                param[(*it)[1]] = param[(*it)[1]] - rangeParam[(*it)[1]] + 2*rangeParam[(*it)[1]]*(y/(double)nBins);
+                std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(param[0], param[1], param[2], param[3], events, randU01s, randDeathTimes);
+                double chisq = calcChisqGagunashvili(refHist, hist1)/(hist1.size()-1);
+                printf("%.15f %.15f %.15f %.15f %.15f\n", param[3], param[0], param[1], param[2], chisq);
+                fflush(stdout);
             }
         }
     }
