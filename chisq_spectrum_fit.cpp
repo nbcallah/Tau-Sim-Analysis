@@ -16,12 +16,16 @@ extern "C" {
     #include "xorshift.h"
 }
 
-#define START (300+20+41)
-#define END (300+20+41+184)
+//#define START (300+20+41)
+//#define END (300+20+41+184)
+
 //#define START 0
 //#define END 1000
 //#define START 41
 //#define END 225
+
+#define START (150 + 200 + 20 + 20)
+#define END (150 + 200 + 20 + 20 + 100)
 
 #define NRECORDS 50
 
@@ -403,38 +407,39 @@ int main(int argc, char** argv) {
         }
     }*/
     
-    int nBins = 100;
-//    std::vector<double> param;
-    std::vector<double> minParam = {4.66666667, 5.875, 1.216666667, 0.25};
-    std::vector<double> rangeParam = {0.5, 5.875, 0.5, 0.25};
-    std::vector<std::vector<int>> pairs = {{0,1},{0,2},{0,3},{1,2},{1,3},{2,3}};
-    for(auto it = pairs.begin(); it < pairs.end(); it++) {
-        #pragma omp parallel for collapse(2)
-        for(int x = 0; x <= nBins; x++) {
-            for(int y = 0; y <= nBins; y++) {
-                std::vector<double> param;
-                param = minParam;
-                param[(*it)[0]] = param[(*it)[0]] - rangeParam[(*it)[0]] + 2*rangeParam[(*it)[0]]*(x/(double)nBins);
-                param[(*it)[1]] = param[(*it)[1]] - rangeParam[(*it)[1]] + 2*rangeParam[(*it)[1]]*(y/(double)nBins);
-                std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(param[0], param[1], param[2], param[3], events, randU01s, randDeathTimes);
-                double chisq = calcChisqGagunashvili(refHist, hist1)/(hist1.size()-1);
-                printf("%.15f %.15f %.15f %.15f %.15f\n", param[3], param[0], param[1], param[2], chisq);
-                fflush(stdout);
-            }
-        }
-    }
+//    int nBins = 100;
+////    std::vector<double> param;
+//    std::vector<double> minParam = {4.66666667, 5.875, 1.216666667, 0.25};
+//    std::vector<double> rangeParam = {0.5, 5.875, 0.5, 0.25};
+//    std::vector<std::vector<int>> pairs = {{0,1},{0,2},{0,3},{1,2},{1,3},{2,3}};
+//    for(auto it = pairs.begin(); it < pairs.end(); it++) {
+//        #pragma omp parallel for collapse(2)
+//        for(int x = 0; x <= nBins; x++) {
+//            for(int y = 0; y <= nBins; y++) {
+//                std::vector<double> param;
+//                param = minParam;
+//                param[(*it)[0]] = param[(*it)[0]] - rangeParam[(*it)[0]] + 2*rangeParam[(*it)[0]]*(x/(double)nBins);
+//                param[(*it)[1]] = param[(*it)[1]] - rangeParam[(*it)[1]] + 2*rangeParam[(*it)[1]]*(y/(double)nBins);
+//                std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(param[0], param[1], param[2], param[3], events, randU01s, randDeathTimes);
+//                double chisq = calcChisqGagunashvili(refHist, hist1)/(hist1.size()-1);
+//                printf("%.15f %.15f %.15f %.15f %.15f\n", param[3], param[0], param[1], param[2], chisq);
+//                fflush(stdout);
+//            }
+//        }
+//    }
 
 //    std::vector<weightedBin> hist1 = createHistQuantMultilayerEPowdESpline(0.0, 4.6, 11.6, 1.1, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.6, 10.0, 1.1, 0.1, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.60606, 7.212121, 1.227273, 0.181818, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(4.60606, 7.212121, 1.227273-1, 0.181818, events, randU01s, randDeathTimes);
+    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(4.6, 5.875, 1.216666667, 0.25, events, randU01s, randDeathTimes);
 //    double chisq2 = calcChisqGagunashvili(refHist, hist1);
 //    printf("%f\n\n", chisq2/(hist1.size()-1));
-////    for(auto it = hist1.begin(); it < hist1.end(); it++) {
-//    for(int i = 0; i < hist1.size(); i++) {
-//      printf("%f,", hist1[i].wgt);
-//    }
-//    printf("\n");
+//    for(auto it = hist1.begin(); it < hist1.end(); it++) {
+    for(int i = 0; i < hist1.size(); i++) {
+      printf("%f,", hist1[i].wgt);
+    }
+    printf("\n");
 
     delete[] randU01s;
     delete[] buf;
