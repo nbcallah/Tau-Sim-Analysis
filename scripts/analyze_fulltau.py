@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import sys
 import numpy as np
@@ -8,6 +8,9 @@ jtonev = 6.2415091e27
 mass_n = 1.674927471e-27
 grav = 9.80665
 minz = -1.464413669130002
+minu = -2.390352484438862e-26
+eCleanLow = 5.571749397933261e-27
+eCleanHigh = 6.396044292436557e-27
     
 def plotPos(data, holdT):
     tStartDip = 350 + holdT + 20
@@ -108,52 +111,37 @@ def plotClean(data, holdT):
 #    plt.show()
 
 def countHeated(data, holdT):
-    eClean = mass_n*grav*(0.38-(minz+1.5))
-    cut = (data['zoff'] > 0) & (data['eStart'] < eClean) & (data['energy'] > eClean)
+    cut = (data['zoff'] > 0) & (data['eStart'] < eCleanLow) & (data['energy'] > eCleanLow)
     return(np.sum(cut))
 
 def countHeatedLost(data, holdT):
-    eClean = mass_n*grav*(0.38-(minz+1.5))
-    cut = (data['zoff'] < -2.5) & (data['eStart'] < eClean)
+    cut = (data['zoff'] < -2.5) & (data['eStart'] < eCleanLow)
     return(np.sum(cut))
 
 def countHeatedLostCleaner(data, holdT):
-    eClean = mass_n*grav*(0.38-(minz+1.5))
-    cut = (data['zoff'] == -3) & (data['eStart'] < eClean) & (data['energy'] > eClean)
+    cut = (data['zoff'] == -3) & (data['eStart'] < eCleanLow) & (data['energy'] > eCleanLow)
     return(np.sum(cut))
 
 def countHeatedLostEscape(data, holdT):
-    eClean = mass_n*grav*(0.38-(minz+1.5))
-    cut = (data['zoff'] == -4) & (data['eStart'] < eClean) & (data['energy'] > eClean)
+    cut = (data['zoff'] == -4) & (data['eStart'] < eCleanLow) & (data['energy'] > eCleanLow)
     return(np.sum(cut))
 
 def countHeatedLostHigh(data, holdT):
-    eClean = mass_n*grav*(0.38+0.05-(minz+1.5))
-    cut = (data['zoff'] == -3)
-    plt.clf()
-#    plt.hist(data[cut]['energy']*jtonev, bins=100)
-#    plt.hist(data[cut]['z'], bins=100)
-#    plt.hist(data[cut]['time'], bins=100)
-#    plt.hist2d(data[cut]['x'], data[cut]['y'], bins=50)
-    plt.hist(data[cut]['energy']/(mass_n*grav)+(minz+1.5), bins=100)
-    plt.show()
+    cut = (data['zoff'] == -3) & (data['eStart'] < eCleanHigh) & (data['energy'] > eCleanHigh)
     return(np.sum(cut))
 
 def countUncleanedLost(data, holdT):
-    eCleanHigh = mass_n*grav*(0.38+0.05-(minz+1.5))
     cut = (data['zoff'] == -3) & (data['eStart'] > eCleanHigh)
     return(np.sum(cut))
 
 def countUncleaned(data, holdT):
-    eClean = mass_n*grav*(0.38-(minz+1.5))
-    cleanCut = (data['zoff'] == -2) & (data['eStart'] > eClean)
-    bandCut = (data['eStart'] > eClean)
+    cleanCut = (data['zoff'] == -2) & (data['eStart'] > eCleanLow)
+    bandCut = (data['eStart'] > eCleanLow)
     return(np.sum(bandCut) - np.sum(cleanCut))
 
 def countUncleanedHigh(data, holdT):
-    eClean = mass_n*grav*(0.38+0.05-(minz+1.5))
-    cleanCut = (data['zoff'] == -2) & (data['eStart'] > eClean)
-    bandCut = (data['eStart'] > eClean)
+    cleanCut = (data['zoff'] == -2) & (data['eStart'] > eCleanHigh)
+    bandCut = (data['eStart'] > eCleanHigh)
     return(np.sum(bandCut) - np.sum(cleanCut))
 
 np.random.seed(2303616184)
@@ -175,9 +163,11 @@ dt = np.dtype([('rLenFront', np.uint32, (1)),
                ('deathTime', np.float64, (1)),
                ('rLenBack', np.uint32, (1))])
 
-shortData = np.fromfile("../datafiles/fulltau/fullTau_Short.bin", dtype=dt)
+shortData = np.fromfile("/Volumes/SanDisk/fullTau_Short.bin", dtype=dt)
+#shortData = np.fromfile("../datafiles/fulltau/fullTau_Short.bin", dtype=dt)
 assert(np.all(shortData['rLenFront']==shortData[0]['rLenFront']))
-longData = np.fromfile("../datafiles/fulltau/fullTau_Long.bin", dtype=dt)
+longData = np.fromfile("/Volumes/SanDisk/fullTau_Long.bin", dtype=dt)
+#longData = np.fromfile("../datafiles/fulltau/fullTau_Long.bin", dtype=dt)
 assert(np.all(longData['rLenFront']==longData[0]['rLenFront']))
 
 #shortDataNoNan = shortData[~np.isnan(shortData['energy'])]
