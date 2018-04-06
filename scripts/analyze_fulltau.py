@@ -84,6 +84,110 @@ def plotDip2(data, holdT):
     plt.hist(data[cutDip2]['time'], bins=np.arange(tStart, tEnd+1, 1), color='red')
     plt.show()
 
+def plotDip1(data, holdT):
+    tStart = 0.0
+    tEndDip1 = holdT + 20
+    tStartDip2 = holdT + 20
+    tEndDip2 = holdT + 20 + 20
+    tEnd = holdT + 20 + 120
+    cut = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd)
+    cutDip1 = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEndDip1)
+    cutDip2 = (data['zoff'] > 0) & (data['time'] > tStartDip2) & (data['time'] < tEndDip2)
+    plt.clf()
+    plt.hist(data[cut]['time'], bins=np.arange(tStart, tEnd+1, 1), color='blue')
+    plt.hist(data[cutDip2]['time'], bins=np.arange(tStart, tEnd+1, 1), color='red')
+    plt.hist(data[cutDip1]['time'], bins=np.arange(tStart, tEnd+1, 1), color='green')
+    plt.yscale('log')
+    plt.show()
+
+def plotDip1HighE(data, holdT):
+    tStart = holdT
+    tEndDip1 = holdT + 20
+    tStartDip2 = holdT + 20
+    tEndDip2 = holdT + 20 + 20
+    tEnd = holdT + 20 + 120
+    cut = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd) & (data['eStart'] >= eCleanLow) & (data['energy'] >= eCleanLow)
+    cutAll = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd)
+    cutDip1 = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEndDip1) & (data['eStart'] >= eCleanLow) & (data['energy'] >= eCleanLow)
+#    cutDip2 = (data['zoff'] > 0) & (data['time'] > tStartDip2) & (data['time'] < tEndDip2) & (data['eStart'] >= eCleanLow) & (data['energy'] >= eCleanLow)
+    plt.clf()
+    plt.hist(data[cutAll]['time'], bins=np.arange(tStart, tEnd+1, 1), color='blue', label='All UCN')
+    plt.hist(data[cut]['time'], bins=np.arange(tStart, tEnd+1, 1), color='red', label='E_i > 38cm & E_f > 38cm')
+#    plt.hist(data[cutDip2]['time'], bins=np.arange(tStart, tEnd+1, 1), color='red')
+#    plt.hist(data[cutDip1]['time'], bins=np.arange(tStart, tEnd+1, 1), color='green')
+    plt.xlabel("Time [s]")
+    plt.ylabel("Counts")
+    plt.text(20, 50, r'$\Sigma$ = '+str(np.sum(cutDip1)))
+    plt.text(80, 10, r'$\Sigma$ = '+str(np.sum(cut)))
+    plt.title("Uncleaned Counting Efficiency")
+    plt.yscale('log')
+    plt.legend()
+    plt.show()
+
+def plotDip1Heat(data, holdT):
+    tStart = holdT
+    tEndDip1 = holdT + 20
+    tStartDip2 = holdT + 20
+    tEndDip2 = holdT + 20 + 20
+    tEnd = holdT + 20 + 120
+    cut = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd) & (data['eStart'] < eCleanLow) & (data['energy'] > eCleanLow)
+    cutAll = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd)
+    cutDip1 = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEndDip1) & (data['eStart'] < eCleanLow) & (data['energy'] > eCleanLow)
+#    cutDip2 = (data['zoff'] > 0) & (data['time'] > tStartDip2) & (data['time'] < tEndDip2) & (data['eStart'] < eCleanLow) & (data['energy'] > eCleanLow)
+    plt.clf()
+    plt.hist(data[cutAll]['time'], bins=np.arange(tStart, tEnd+1, 1), color='blue', label='All UCN')
+    plt.hist(data[cut]['time'], bins=np.arange(tStart, tEnd+1, 1), color='red', label='E_i < 38cm & E_f > 38cm')
+#    plt.hist(data[cutDip2]['time'], bins=np.arange(tStart, tEnd+1, 1), color='red')
+#    plt.hist(data[cutDip1]['time'], bins=np.arange(tStart, tEnd+1, 1), color='green')
+    plt.xlabel("Time [s]")
+    plt.ylabel("Counts")
+    plt.text(1400, 50, r'$\Sigma$ = '+str(np.sum(cutDip1)))
+    plt.text(1460, 10, r'$\Sigma$ = '+str(np.sum(cut)))
+    plt.title("Heating Counting Efficiency")
+    plt.yscale('log')
+    plt.legend()
+    plt.show()
+
+def plotDip1_43cm(data, holdT):
+    tStart = holdT
+    tEndDip1 = holdT + 20
+    tStartDip2 = holdT + 20
+    tEndDip2 = holdT + 20 + 20
+    tEnd = holdT + 20 + 120
+    cut = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd) & (data['energy'] > eCleanHigh)
+    cutAll = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd)
+    cutDip1 = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEndDip1) & (data['energy'] > eCleanHigh)
+#    cutDip2 = (data['zoff'] > 0) & (data['time'] > tStartDip2) & (data['time'] < tEndDip2) & (data['eStart'] < eCleanLow) & (data['energy'] > eCleanLow)
+    plt.clf()
+    plt.hist(data[cutAll]['time'], bins=np.arange(tStart, tEnd+1, 1), color='blue', label='All UCN')
+    plt.hist(data[cut]['time'], bins=np.arange(tStart, tEnd+1, 1), color='red', label='E_f > 43cm')
+#    plt.hist(data[cutDip2]['time'], bins=np.arange(tStart, tEnd+1, 1), color='red')
+#    plt.hist(data[cutDip1]['time'], bins=np.arange(tStart, tEnd+1, 1), color='green')
+    plt.xlabel("Time [s]")
+    plt.ylabel("Counts")
+    plt.text(1400, 50, r'$\Sigma$ = '+str(np.sum(cutDip1)))
+    plt.text(1460, 10, r'$\Sigma$ = '+str(np.sum(cut)))
+    plt.title("Heating Counting Efficiency")
+    plt.yscale('log')
+    plt.legend()
+    plt.show()
+
+def plotDip1LowE(data, holdT):
+    tStart = holdT
+    tEndDip1 = holdT + 20
+    tStartDip2 = holdT + 20
+    tEndDip2 = holdT + 20 + 20
+    tEnd = holdT + 20 + 120
+    cut = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd) & (data['eStart'] <= 0.2*mass_n*grav)
+    cutDip1 = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEndDip1) & (data['eStart'] <= 0.2*mass_n*grav)
+    cutDip2 = (data['zoff'] > 0) & (data['time'] > tStartDip2) & (data['time'] < tEndDip2) & (data['eStart'] <= 0.2*mass_n*grav)
+    plt.clf()
+    plt.hist(data[cut]['time'], bins=np.arange(tStart, tEnd+1, 1), color='blue')
+    plt.hist(data[cutDip2]['time'], bins=np.arange(tStart, tEnd+1, 1), color='red')
+    plt.hist(data[cutDip1]['time'], bins=np.arange(tStart, tEnd+1, 1), color='green')
+    plt.yscale('log')
+    plt.show()
+    
 def ratDip2(data, holdT):
     tStart = holdT + 20
     tEndDip2 = holdT + 20 + 20
@@ -104,6 +208,23 @@ def plotClean(data, holdT):
     cut = (data['zoff'] == -2) & (data['time'] < 0)
     plt.clf()
 #    plt.hist(data[cut]['time'] + data[cut]['settlingTime'], bins=np.arange(0,50,1))
+#    plt.hist(data[cut]['time'] + 50, bins=np.arange(0,100,1))
+#    plt.yscale('log')
+#    plt.hist(data[cut]['energy']/(mass_n*grav)+(minz+1.5), bins=100)
+#    plt.hist2d(data[cut]['energy']/(mass_n*grav)+(minz+1.5), bins=100)
+#    plt.show()
+
+def plotStorageClean(data, holdT):
+    cutUncl = (data['zoff'] == -3) & (data['eStart'] >= eCleanLow)
+    cutHeat = (data['zoff'] == -3) & (data['eStart'] < eCleanLow)
+#    cutAll = (data['zoff'] == -3)
+    plt.clf()
+    plt.hist(data[cutHeat]['time'], bins=np.arange(0,holdT,1), color='blue', label='Heated')
+    plt.hist(data[cutUncl]['time'], bins=np.arange(0,holdT,1), color='red', label='Uncleaned')
+    plt.xlabel('Time [s]')
+    plt.ylabel('Counts')
+    plt.legend()
+    plt.show()
 #    plt.hist(data[cut]['time'] + 50, bins=np.arange(0,100,1))
 #    plt.yscale('log')
 #    plt.hist(data[cut]['energy']/(mass_n*grav)+(minz+1.5), bins=100)
@@ -144,6 +265,28 @@ def countUncleanedHigh(data, holdT):
     bandCut = (data['eStart'] > eCleanHigh)
     return(np.sum(bandCut) - np.sum(cleanCut))
 
+def popBreakdown(data, holdT):
+    lowCut = (data['eStart'] < eCleanLow)
+    midCut = (data['eStart'] >= eCleanLow) & (data['eStart'] < eCleanHigh)
+    highCut = (data['eStart'] >= eCleanHigh)
+    print("LowE:", np.sum(lowCut), "MidE:", np.sum(midCut), "HighE", np.sum(highCut))
+
+def popBreakdownDet(data, holdT):
+    tStart = holdT + 20
+    tEnd = holdT + 20 + 120
+    lowCut = (data['eStart'] < eCleanLow) & (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd)
+    midCut = (data['eStart'] >= eCleanLow) & (data['eStart'] < eCleanHigh) & (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd)
+    highCut = (data['eStart'] >= eCleanHigh) & (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd)
+    print("LowE:", np.sum(lowCut), "MidE:", np.sum(midCut), "HighE", np.sum(highCut))
+
+def countFirstDip(data, holdT):
+    tStart = holdT
+    tEnd = holdT + 20
+    cutUncl = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd) & (data['eStart'] >= eCleanLow)
+    cutHeat = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd) & (data['eStart'] < eCleanLow)
+    cutAll = (data['zoff'] > 0) & (data['time'] > tStart) & (data['time'] < tEnd)
+    print("Uncl:", np.sum(cutUncl), "Heat:", np.sum(cutHeat), "All:", np.sum(cutAll))
+
 np.random.seed(2303616184)
 
 dt = np.dtype([('rLenFront', np.uint32, (1)),
@@ -163,11 +306,17 @@ dt = np.dtype([('rLenFront', np.uint32, (1)),
                ('deathTime', np.float64, (1)),
                ('rLenBack', np.uint32, (1))])
 
-shortData = np.fromfile("/Volumes/SanDisk/fullTau_Short.bin", dtype=dt)
+#shortData = np.fromfile("/Volumes/SanDisk/fullTau_Short.bin", dtype=dt)
 #shortData = np.fromfile("../datafiles/fulltau/fullTau_Short.bin", dtype=dt)
+shortData = np.fromfile("../datafiles/fulltau/ccw-heat/fullTau_Short_ccw_clean.bin", dtype=dt)
+#shortData = np.fromfile("../datafiles/fulltau/high_stat/fullTau_Short_kill.bin", dtype=dt)
+#shortData = np.fromfile("../datafiles/fulltau/high_stat/cleanOnlyTau_Short_kill.bin", dtype=dt)
 assert(np.all(shortData['rLenFront']==shortData[0]['rLenFront']))
-longData = np.fromfile("/Volumes/SanDisk/fullTau_Long.bin", dtype=dt)
+#longData = np.fromfile("/Volumes/SanDisk/fullTau_Long.bin", dtype=dt)
 #longData = np.fromfile("../datafiles/fulltau/fullTau_Long.bin", dtype=dt)
+longData = np.fromfile("../datafiles/fulltau/ccw-heat/fullTau_Long_ccw_clean.bin", dtype=dt)
+#longData = np.fromfile("../datafiles/fulltau/high_stat/fullTau_Long_kill.bin", dtype=dt)
+#longData = np.fromfile("../datafiles/fulltau/high_stat/cleanOnlyTau_Long_kill.bin", dtype=dt)
 assert(np.all(longData['rLenFront']==longData[0]['rLenFront']))
 
 #shortDataNoNan = shortData[~np.isnan(shortData['energy'])]
@@ -179,23 +328,40 @@ assert(np.all(longData['rLenFront']==longData[0]['rLenFront']))
 #plotClean(shortData, 20)
 #plotClean(longData, 1400)
 
-print("uncleaned   uncleanedHigh   heated   uncleanedLost   heatedLost  heatedLostCleaner  heatedLostEscape  heatedLostHigh")
-print(countUncleaned(shortData, 20), countUncleanedHigh(shortData, 20), countHeated(shortData, 20), countUncleanedLost(shortData, 20), countHeatedLost(shortData, 20), countHeatedLostCleaner(shortData, 20), countHeatedLostEscape(shortData, 20), countHeatedLostHigh(shortData, 20))
-print(countUncleaned(longData, 1400), countUncleanedHigh(longData, 1400), countHeated(longData, 1400), countUncleanedLost(longData, 1400), countHeatedLost(longData, 1400), countHeatedLostCleaner(longData, 1400), countHeatedLostEscape(longData, 1400), countHeatedLostHigh(longData, 1400))
+#Uncleaned Error
+#print("uncleaned   uncleanedHigh   heated   uncleanedLost   heatedLost  heatedLostCleaner  heatedLostEscape  heatedLostHigh")
+#print(countUncleaned(shortData, 20), countUncleanedHigh(shortData, 20), countHeated(shortData, 20), countUncleanedLost(shortData, 20), countHeatedLost(shortData, 20), countHeatedLostCleaner(shortData, 20), countHeatedLostEscape(shortData, 20), countHeatedLostHigh(shortData, 20))
+#print(countUncleaned(longData, 1400), countUncleanedHigh(longData, 1400), countHeated(longData, 1400), countUncleanedLost(longData, 1400), countHeatedLost(longData, 1400), countHeatedLostCleaner(longData, 1400), countHeatedLostEscape(longData, 1400), countHeatedLostHigh(longData, 1400))
+#countFirstDip(shortData, 20)
+#countFirstDip(longData, 1400)
+plotDip1HighE(shortData, 20)
+#plotDip1HighE(longData, 1400)
+#plotDip1Heat(shortData, 20)
+plotDip1Heat(longData, 1400)
+#plotDip1_43cm(longData, 1400)
+#plotStorageClean(shortData, 20)
+#plotStorageClean(longData, 1400)
 
+
+#Lifetime
 numShort = countUCN(shortData, 20)
 timeShort = avgT(shortData, 20)
-
 numLong = countUCN(longData, 1400)
 timeLong = avgT(longData, 1400)
-
 #plotDip2(shortData, 20)
 #plotDip2(longData, 1400)
-
-print(ratDip2(shortData, 20), ratDip2(longData, 1400))
-
-print(sumCleanChk(shortData, 20), sumCleanChk(longData, 1400))
-
-lt = (timeLong-timeShort)/(np.log(numShort/numLong))
-lterr = np.sqrt(1/numShort + 1/numLong)*(timeLong-timeShort)/(np.log(numShort/numLong))**2
+lt = (timeLong-timeShort)/(np.log((numShort/len(shortData))/(numLong/len(longData))))
+lterr = np.sqrt(1/numShort + 1/numLong)*(timeLong-timeShort)/(np.log((numShort/len(shortData))/(numLong/len(longData))))**2
 print(timeShort, timeLong, numShort, numLong, (timeLong-timeShort), lt, lterr)
+heatedNumber = countHeatedLostCleaner(longData, 1400)
+print("num Heated:", heatedNumber)
+
+#Systematics
+#print(ratDip2(shortData, 20), ratDip2(longData, 1400))
+#print(sumCleanChk(shortData, 20), sumCleanChk(longData, 1400))
+
+#Other Checks
+#popBreakdown(shortData, 20)
+#popBreakdown(longData, 1400)
+#popBreakdownDet(shortData, 20)
+#popBreakdownDet(longData, 1400)

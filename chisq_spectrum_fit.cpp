@@ -11,6 +11,7 @@
 #include "TH1D.h"
 #include "TF1.h"
 #include "TROOT.h"
+#include <assert.h>
 
 extern "C" {
     #include "xorshift.h"
@@ -24,8 +25,10 @@ extern "C" {
 //#define START 41
 //#define END 225
 
-#define START (150 + 200 + 20 + 20)
-#define END (150 + 200 + 20 + 20 + 100)
+//#define START (150 + 200 + 20 + 20)
+//#define END (150 + 200 + 20 + 20 + 100)
+#define START (20 + 41)
+#define END (20 + 41 + 184)
 
 #define NRECORDS 50
 
@@ -174,6 +177,9 @@ std::vector<weightedBin> createHistQuantMultilayerEPowdESpline(double thickOxide
 //        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
+            if(events[i].ePerp[j] == 0) {
+                continue;
+            }
             if(events[i].times[j] < 41) {
                 continue;
             }
@@ -224,6 +230,9 @@ std::vector<weightedBin> createHistQuantNoOxEPowdEThetaSpline(double thickBoron,
 //        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
+            if(events[i].ePerp[j] == 0) {
+                continue;
+            }
             if(events[i].times[j] < START) {
                 continue;
             }
@@ -272,6 +281,9 @@ std::vector<weightedBin> createHistQuantNoOxEPowdEThetaSpline_C(double thickBoro
 //        weight = (events[i].energy*JTONEV-threshold)/(34.5-threshold);
 
         for(int j = 0; j < NRECORDS; j++) {
+            if(events[i].ePerp[j] == 0) {
+                continue;
+            }
             if(events[i].times[j] < START) {
                 continue;
             }
@@ -351,6 +363,7 @@ int main(int argc, char** argv) {
         event.theta = *((double *)(&buf[0] + sizeof(unsigned int) + sizeof(double)));
         std::memcpy((void *)&event.times, (void *)(&buf[0] + sizeof(unsigned int) + 2*sizeof(double)), NRECORDS*sizeof(float));
         std::memcpy((void *)&event.ePerp, (void *)(&buf[0] + sizeof(unsigned int) + 2*sizeof(double) + NRECORDS*sizeof(float)), NRECORDS*sizeof(float));
+        assert(*(int *)(&buf[0]) == buff_len-8);
         events.push_back(event);
     }
     binfile.close();
@@ -367,7 +380,7 @@ int main(int argc, char** argv) {
         randDeathTimes[i] = -877.7*log(nextU01());
     }
     
-    /*int nBins = 33;
+    int nBins = 10;
     #pragma omp parallel for collapse(4)
     for(int i = 0; i < nBins+1; i++) {
         for(int j = 0; j < nBins+1; j++) {
@@ -385,7 +398,7 @@ int main(int argc, char** argv) {
                 }
             }
         }
-    }*/
+    }
     
     /*int nBins = 24;
     #pragma omp parallel for collapse(4)
@@ -432,14 +445,14 @@ int main(int argc, char** argv) {
 //    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.6, 10.0, 1.1, 0.1, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline(4.60606, 7.212121, 1.227273, 0.181818, events, randU01s, randDeathTimes);
 //    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(4.60606, 7.212121, 1.227273-1, 0.181818, events, randU01s, randDeathTimes);
-    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(4.6, 5.875, 1.216666667, 0.25, events, randU01s, randDeathTimes);
-//    double chisq2 = calcChisqGagunashvili(refHist, hist1);
-//    printf("%f\n\n", chisq2/(hist1.size()-1));
-//    for(auto it = hist1.begin(); it < hist1.end(); it++) {
-    for(int i = 0; i < hist1.size(); i++) {
-      printf("%f,", hist1[i].wgt);
-    }
-    printf("\n");
+//    std::vector<weightedBin> hist1 = createHistQuantNoOxEPowdEThetaSpline_C(4.6, 5.875, 1.216666667, 0.25, events, randU01s, randDeathTimes);
+////    double chisq2 = calcChisqGagunashvili(refHist, hist1);
+////    printf("%f\n\n", chisq2/(hist1.size()-1));
+////    for(auto it = hist1.begin(); it < hist1.end(); it++) {
+//    for(int i = 0; i < hist1.size(); i++) {
+//      printf("%f,", hist1[i].wgt);
+//    }
+//    printf("\n");
 
     delete[] randU01s;
     delete[] buf;
